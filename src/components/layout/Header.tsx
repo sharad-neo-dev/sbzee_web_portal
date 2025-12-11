@@ -10,10 +10,17 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
+import { useAppDispatch, useAuth, useCart } from "@/store/hooks";
+import { toggleCart } from "@/store/slices/cartSlice";
+import { logout } from "@/store/slices/authSlice";
 
 export function Header() {
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [fade, setFade] = useState(false);
+  const dispatch = useAppDispatch();
+
+  const { items, itemCount, isCartOpen } = useCart();
+  const { user, isAuthenticated } = useAuth();
 
   const placeholders = [
     "Search spinach",
@@ -26,89 +33,117 @@ export function Header() {
   useEffect(() => {
     const interval = setInterval(() => {
       setFade(true);
-
       setTimeout(() => {
         setPlaceholderIndex((prev) => (prev + 1) % placeholders.length);
         setFade(false);
       }, 300);
     }, 2000);
-
     return () => clearInterval(interval);
   }, []);
 
+  const handleCartClick = () => {
+    dispatch(toggleCart());
+  };
+
+  const handleLogout = () => {
+    dispatch(logout());
+  };
+
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-(--accent) shadow-md">
       <nav className="container-custom px-4 lg:px-15">
         <div className="hidden md:flex items-center h-18 lg:h-22 w-full gap-8 lg:gap-10">
           <Link
             href="/"
             className="flex items-center space-x-2 shrink-0 mr-4 lg:mr-8">
             <Image
-              src="/assets/img/LogoGreen.png"
+              src="/assets/img/LogoWhite.png"
               alt="Sbzee Logo"
               width={100}
               height={30}
               draggable={false}
             />
-            <span className="sr-only">AssuredPay</span>
+            <span className="sr-only">Sbzee</span>
           </Link>
 
-          <div className="flex flex-col text-sm">
+          <div className="flex flex-col text-sm text-(--text-white)">
             <span className="font-black text-xl">
               Delivery Tomorrow Morning (5-8am)
             </span>
             <div className="flex items-center gap-1">
               <span>City Centre Noida</span>
-              <ChevronDown />
+              <ChevronDown className="text-(--text-white)" />
             </div>
           </div>
 
-          <div className="flex items-center border border-gray-300 rounded-md overflow-hidden flex-1 max-w-[700px] ml-4 relative">
+          <div className="flex items-center border border-white/30 rounded-md overflow-hidden flex-1 max-w-[700px] ml-4 relative bg-(--bg-white)">
             <div className="pl-2 pr-1">
               <Search className="h-5 w-5 text-gray-400" />
             </div>
             <input
               type="text"
               placeholder={placeholders[placeholderIndex]}
-              className={`py-3 px-2 outline-none border-none w-full text-base bg-transparent placeholder:transition-opacity placeholder:duration-300 ${
+              className={`py-3 px-2 outline-none border-none w-full text-base bg-(--bg-white) placeholder:transition-opacity placeholder:duration-300 ${
                 fade ? "placeholder:opacity-0" : "placeholder:opacity-100"
               }`}
             />
           </div>
 
-          <Button className="bg-green-600 hover:scale-110 hover:bg-green-700 cursor-pointer transition-all duration-300 text-xl p-6">
-            Login
-          </Button>
+          {isAuthenticated ? (
+            <div className="flex items-center gap-4">
+              <span className="text-white">Hi, {user?.name}</span>
+              <Button
+                onClick={handleLogout}
+                className="bg-white text-(--accent) hover:bg-white/90">
+                Logout
+              </Button>
+            </div>
+          ) : (
+            <Link href="/login">
+              <Button className="bg-white text-(--accent) hover:bg-white/90 hover:scale-110 cursor-pointer transition-all duration-300 text-xl p-6">
+                Login
+              </Button>
+            </Link>
+          )}
 
-          <div className="flex items-center bg-green-300 p-2 sm:p-3 rounded-lg cursor-pointer ml-6">
-            <ShoppingCart className="w-7 h-7" />
-            <span className="ml-1 text-lg font-medium">My Cart</span>
+          <div
+            className="flex items-center bg-(--bg-white) p-2 sm:p-3 rounded-lg cursor-pointer ml-6 relative"
+            onClick={handleCartClick}>
+            <ShoppingCart className="w-7 h-7 text-(--accent)" />
+            <span className="ml-1 text-lg font-medium text-(--accent)">
+              My Cart
+            </span>
+            {itemCount > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
+                {itemCount}
+              </span>
+            )}
           </div>
         </div>
 
         <div className="flex flex-col md:hidden w-full gap-2 py-2">
           <div className="flex items-center justify-between">
-            <div className="flex flex-col text-sm">
+            <div className="flex flex-col text-sm text-(--text-white)">
               <span className="font-black text-lg">
                 Delivery Tomorrow Morning (5-8am)
               </span>
               <div className="flex items-center gap-1">
                 <span>City Centre Noida</span>
-                <ChevronDown />
+                <ChevronDown className="text-(--text-white)" />
               </div>
             </div>
 
-            <CircleUserRound size={30} />
+            <CircleUserRound size={30} className="text-(--text-white)" />
           </div>
 
-          <div className="flex items-center border border-gray-300 rounded-md overflow-hidden w-full">
+          <div className="flex items-center border border-white/30 rounded-md overflow-hidden w-full bg-(--bg-white)">
             <div className="pl-2 pr-1">
               <Search className="h-5 w-5 text-gray-400" />
             </div>
             <input
               type="text"
               placeholder={placeholders[placeholderIndex]}
-              className={`py-3 px-2 outline-none border-none w-full text-base placeholder:transition-opacity placeholder:duration-300 ${
+              className={`py-3 px-2 outline-none border-none w-full text-base bg-(--bg-white) placeholder:transition-opacity placeholder:duration-300 ${
                 fade ? "placeholder:opacity-0" : "placeholder:opacity-100"
               }`}
             />

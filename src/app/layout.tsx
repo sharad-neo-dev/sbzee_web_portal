@@ -4,6 +4,7 @@ import { SmoothScrollProvider } from "@/components/providers/SmoothScrollProvide
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { BackToTop } from "@/components/ui/BackToTop";
+import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: "Sbzee",
@@ -167,12 +168,14 @@ export default function RootLayout({
         /> */}
       </head>
       <body className="antialiased">
-        <SmoothScrollProvider>
-          <Header />
-          <main>{children}</main>
-          {/* <Footer /> */}
-          <BackToTop />
-        </SmoothScrollProvider>
+        <Providers>
+          <SmoothScrollProvider>
+            <Header />
+            <main className="pt-18 lg:pt-22">{children}</main>
+            <Footer />
+            <BackToTop />
+          </SmoothScrollProvider>
+        </Providers>
       </body>
     </html>
   );

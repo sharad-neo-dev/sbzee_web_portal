@@ -3,6 +3,7 @@
 import React from "react";
 import { ProductCard, Product } from "@/components/ui/ProductCard";
 import { HorizontalScrollContainer } from "@/components/ui/HorizontalScrollContainer";
+import { useGetFeaturedProductsQuery } from "@/redux/services/productsApi";
 
 const featuredProducts: Product[] = [
   {
@@ -101,6 +102,8 @@ const featuredProducts: Product[] = [
 ];
 
 function FeaturedProducts() {
+  // const { data } = useGetFeaturedProductsQuery({ limit: 10, page: 1 });
+
   const handleAddToCart = (product: Product) => {
     console.log("Added to cart:", product);
   };
@@ -115,7 +118,8 @@ function FeaturedProducts() {
       subtitle="Fresh picks just for you"
       onViewAllClick={handleViewAll}
       className="mt-10 lg:mt-14"
-      containerClassName="px-4">
+      containerClassName="px-4"
+    >
       {featuredProducts.map((product) => (
         <div key={product.id} className="min-w-[280px] md:min-w-[300px]">
           <ProductCard

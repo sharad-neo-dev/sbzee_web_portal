@@ -10,17 +10,18 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { useAppDispatch, useAuth, useCart } from "@/store/hooks";
-import { toggleCart } from "@/store/slices/cartSlice";
-import { logout } from "@/store/slices/authSlice";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { logout } from "@/redux/features/auth/authSlice";
 
 export function Header() {
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [fade, setFade] = useState(false);
   const dispatch = useAppDispatch();
 
-  const { items, itemCount, isCartOpen } = useCart();
-  const { user, isAuthenticated } = useAuth();
+  const { items, totalQty } = useAppSelector((state) => state.cart);
+  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+
+  console.log(items);
 
   const placeholders = [
     "Search spinach",
@@ -41,10 +42,6 @@ export function Header() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleCartClick = () => {
-    dispatch(toggleCart());
-  };
-
   const handleLogout = () => {
     dispatch(logout());
   };
@@ -55,7 +52,8 @@ export function Header() {
         <div className="hidden md:flex items-center h-18 lg:h-22 w-full gap-8 lg:gap-10">
           <Link
             href="/"
-            className="flex items-center space-x-2 shrink-0 mr-4 lg:mr-8">
+            className="flex items-center space-x-2 shrink-0 mr-4 lg:mr-8"
+          >
             <Image
               src="/assets/img/LogoWhite.png"
               alt="Sbzee Logo"
@@ -94,7 +92,8 @@ export function Header() {
               <span className="text-white">Hi, {user?.name}</span>
               <Button
                 onClick={handleLogout}
-                className="bg-white text-(--accent) hover:bg-white/90">
+                className="bg-white text-(--accent) hover:bg-white/90"
+              >
                 Logout
               </Button>
             </div>
@@ -106,16 +105,14 @@ export function Header() {
             </Link>
           )}
 
-          <div
-            className="flex items-center bg-(--bg-white) p-2 sm:p-3 rounded-lg cursor-pointer ml-6 relative"
-            onClick={handleCartClick}>
+          <div className="flex items-center bg-(--bg-white) p-2 sm:p-3 rounded-lg cursor-pointer ml-6 relative">
             <ShoppingCart className="w-7 h-7 text-(--accent)" />
             <span className="ml-1 text-lg font-medium text-(--accent)">
               My Cart
             </span>
-            {itemCount > 0 && (
+            {totalQty > 0 && (
               <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
-                {itemCount}
+                {totalQty}
               </span>
             )}
           </div>

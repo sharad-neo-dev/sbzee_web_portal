@@ -1,19 +1,27 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Star, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { PreSignedImage } from "@/components/ui/PreSignedImage";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
+import { decreaseQty, increaseQty } from "@/redux/features/cart/cartSlice";
+
+export interface ProductPrice {
+  id: string;
+  price: number;
+  originalPrice: number;
+  unitType: string;
+  unitTypeDescription: string;
+}
 
 export interface Product {
-  id: number | string;
+  id: string;
   name: string;
   price: number;
   unit: string;
@@ -23,11 +31,16 @@ export interface Product {
   discount?: number;
   description?: string;
   inStock?: boolean;
+  hindiName?: string;
+  isFeatured?: boolean;
+  isFavourite?: boolean;
+  prices?: ProductPrice[];
+  thumbnail?: string;
 }
 
 interface ProductCardProps {
   product: Product;
-  onAddToCart?: (product: Product) => void;
+  onAddToCart?: (product: Product, selectedPrice?: ProductPrice) => void;
   className?: string;
   variant?: "default" | "compact" | "detailed";
   orientation?: "vertical" | "horizontal";
@@ -40,46 +53,83 @@ export function ProductCard({
   variant = "default",
   orientation = "vertical",
 }: ProductCardProps) {
+  const router = useRouter();
+  const [selectedPriceIndex, setSelectedPriceIndex] = useState(0);
+
+  const dispatch = useDispatch();
+
   const {
     name,
-    price,
-    unit,
     category,
     image,
     rating = 0,
-    discount = 0,
     description,
     inStock = true,
+    prices = [],
+    thumbnail,
   } = product;
+
+  const availablePrices =
+    prices.length > 0
+      ? prices
+      : [
+          {
+            id: product.id,
+            price: product.price,
+            originalPrice: product.price,
+            unitType: "weight",
+            unitTypeDescription: product.unit,
+          },
+        ];
+
+  const selectedPrice = availablePrices[selectedPriceIndex];
+  const currentPrice = selectedPrice?.price || product.price;
+  const currentUnit =
+    selectedPrice?.unitTypeDescription.replace("per ", "") || product.unit;
+  const currentOriginalPrice = selectedPrice?.originalPrice || product.price;
+
+  const discount =
+    currentOriginalPrice > currentPrice
+      ? Math.round(
+          ((currentOriginalPrice - currentPrice) / currentOriginalPrice) * 100
+        )
+      : 0;
+
+  const cartItem = useSelector((state: RootState) =>
+    state.cart.items.find(
+      (i) => i.productId === product.id && i.priceId === selectedPrice?.id
+    )
+  );
+  const currentQty = cartItem?.qty ?? 0;
+
+  const handleCardClick = () => {
+    router.push(`/products/${product.id}`);
+  };
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onAddToCart) {
-      onAddToCart(product);
+      onAddToCart(product, selectedPrice);
     }
   };
 
-  const calculateOriginalPrice = () => {
-    if (discount > 0) {
-      return (price * 100) / (100 - discount);
-    }
-    return null;
+  const handlePriceSelect = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
+    setSelectedPriceIndex(index);
   };
-
-  const originalPrice = calculateOriginalPrice();
 
   if (variant === "compact") {
     return (
       <Card
-        className={`overflow-hidden hover:shadow-lg transition-shadow ${className}`}>
-        <div className="flex">
+        className={`overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${className}`}>
+        <div className="flex" onClick={handleCardClick}>
           <div className="relative w-24 h-24 shrink-0">
-            <Image
-              src={image}
+            <PreSignedImage
+              src={thumbnail}
               alt={name}
               fill
               className="object-cover"
-              sizes="(max-width: 768px) 100vw, 96px"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 256px"
             />
             {discount > 0 && (
               <Badge className="absolute top-1 left-1 bg-red-500 hover:bg-red-600 text-xs">
@@ -88,28 +138,33 @@ export function ProductCard({
             )}
           </div>
 
-          <div className="flex-1 p-3 flex flex-col justify-between">
+          <CardContent className="flex-1 p-3 flex flex-col justify-between">
             <div>
               <h3 className="font-medium text-sm line-clamp-1">{name}</h3>
               <div className="flex items-center mt-1">
-                <span className="text-lg font-bold">₹{price.toFixed(2)}</span>
-                {originalPrice && (
+                <span className="text-lg font-bold">
+                  ₹{currentPrice.toFixed(2)}
+                </span>
+                {discount > 0 && (
                   <span className="text-xs text-gray-500 line-through ml-1">
-                    ₹{originalPrice.toFixed(2)}
+                    ₹{currentOriginalPrice.toFixed(2)}
                   </span>
                 )}
-                <span className="text-xs text-gray-500 ml-1">/{unit}</span>
+                <span className="text-xs text-gray-500 ml-1">
+                  /{currentUnit}
+                </span>
               </div>
             </div>
 
             <Button
               size="sm"
               onClick={handleAddToCart}
-              className="w-full bg-(--accent) hover:bg-(--accent-dark)">
+              className="w-full bg-(--accent) hover:bg-(--accent-dark)"
+              disabled={!inStock}>
               <ShoppingCart className="h-3 w-3 mr-1" />
-              Add
+              Add to Cart
             </Button>
-          </div>
+          </CardContent>
         </div>
       </Card>
     );
@@ -118,10 +173,10 @@ export function ProductCard({
   if (orientation === "horizontal") {
     return (
       <Card
-        className={`overflow-hidden hover:shadow-lg transition-shadow ${className}`}>
-        <div className="flex">
+        className={`overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${className}`}>
+        <div className="flex" onClick={handleCardClick}>
           <div className="relative w-32 h-32 shrink-0">
-            <Image
+            <PreSignedImage
               src={image}
               alt={name}
               fill
@@ -135,7 +190,7 @@ export function ProductCard({
             )}
           </div>
 
-          <div className="flex-1 p-4">
+          <CardContent className="flex-1 p-4">
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="font-semibold text-lg">{name}</h3>
@@ -145,11 +200,13 @@ export function ProductCard({
               </div>
 
               <div className="text-right">
-                <div className="text-2xl font-bold">₹{price.toFixed(2)}</div>
-                <div className="text-sm text-gray-500">/{unit}</div>
-                {originalPrice && (
+                <div className="text-2xl font-bold">
+                  ₹{currentPrice.toFixed(2)}
+                </div>
+                <div className="text-sm text-gray-500">/{currentUnit}</div>
+                {discount > 0 && (
                   <div className="text-sm text-gray-400 line-through">
-                    ₹{originalPrice.toFixed(2)}
+                    ₹{currentOriginalPrice.toFixed(2)}
                   </div>
                 )}
               </div>
@@ -190,21 +247,24 @@ export function ProductCard({
                 {inStock ? "Add to Cart" : "Out of Stock"}
               </Button>
             </div>
-          </div>
+          </CardContent>
         </div>
       </Card>
     );
   }
 
+  // Default vertical variant
   return (
     <Card
-      className={`shadow-none border-none overflow-hidden bg-white hover:shadow-md transition-all ${className}`}>
-      <div className="relative h-44 w-full overflow-hidden">
-        <Image
+      className={`shadow-none border-none overflow-hidden bg-white hover:shadow-md transition-all cursor-pointer ${className}`}>
+      <div
+        className="relative h-44 w-full overflow-hidden"
+        onClick={handleCardClick}>
+        <PreSignedImage
           src={image}
           alt={name}
           fill
-          className="object-cover rounded-b-none"
+          className="object-cover"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 256px"
         />
 
@@ -229,7 +289,7 @@ export function ProductCard({
         )}
       </div>
 
-      <div className="p-3 space-y-2">
+      <CardContent className="p-3 space-y-2">
         <h3 className="font-medium text-base line-clamp-1">{name}</h3>
 
         {rating > 0 && (
@@ -254,28 +314,80 @@ export function ProductCard({
 
         <div>
           <div className="flex items-baseline">
-            <span className="text-xl font-semibold">₹{price.toFixed(2)}</span>
-            <span className="text-gray-500 text-xs ml-1">/{unit}</span>
+            <span className="text-xl font-semibold">
+              ₹{currentPrice.toFixed(2)}
+            </span>
+            <span className="text-gray-500 text-xs ml-1">/{currentUnit}</span>
           </div>
 
           <div className="h-4 flex items-center">
-            {originalPrice && (
-              <span className="text-xs text-gray-400 line-through">
-                ₹{originalPrice.toFixed(2)}
-              </span>
+            {discount > 0 && (
+              <>
+                <span className="text-xs text-gray-400 line-through mr-2">
+                  ₹{currentOriginalPrice.toFixed(2)}
+                </span>
+                <span className="text-xs text-green-600 font-medium">
+                  Save {discount}%
+                </span>
+              </>
             )}
           </div>
+
+          {/* Price variants selector (if multiple prices) */}
+          {availablePrices.length > 1 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {availablePrices.map((price, index) => (
+                <button
+                  key={price.id}
+                  onClick={(e) => handlePriceSelect(e, index)}
+                  className={cn(
+                    "text-xs px-2 py-1 rounded border transition-colors",
+                    selectedPriceIndex === index
+                      ? "bg-green-100 border-green-500 text-green-700"
+                      : "bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200"
+                  )}>
+                  {price.unitTypeDescription}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        <Button
-          onClick={handleAddToCart}
-          size="sm"
-          className="w-full bg-(--accent) hover:bg-(--accent-dark) cursor-pointer"
-          disabled={!inStock}>
-          <ShoppingCart className="h-4 w-4 mr-1" />
-          Add
-        </Button>
-      </div>
+        {currentQty === 0 ? (
+          <Button
+            onClick={handleAddToCart}
+            size="sm"
+            className="w-full bg-(--accent) hover:bg-(--accent-dark) cursor-pointer text-white"
+            disabled={!inStock}>
+            <ShoppingCart className="h-4 w-4 mr-1" />
+            Add to Cart
+          </Button>
+        ) : (
+          <div className="w-[80%] flex mx-auto bg-(--accent) hover:bg-(--accent-dark) rounded-md text-white">
+            <div className="flex items-center justify-between  px-2 py-1 w-full">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  dispatch(decreaseQty(cartItem!.id));
+                }}
+                className="px-3 text-lg font-semibold cursor-pointer">
+                -
+              </button>
+              <span className="px-3 text-md font-medium cursor-pointer">
+                {currentQty}
+              </span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  dispatch(increaseQty(cartItem!.id));
+                }}
+                className="px-3 text-lg font-semibold cursor-pointer">
+                +
+              </button>
+            </div>
+          </div>
+        )}
+      </CardContent>
     </Card>
   );
 }
@@ -285,10 +397,10 @@ export function ProductCardSkeleton() {
   return (
     <Card className="overflow-hidden animate-pulse">
       <div className="h-48 bg-gray-200" />
-      <CardHeader className="pb-2">
+      <CardContent className="pb-2">
         <div className="h-5 bg-gray-200 rounded mb-2" />
         <div className="h-4 bg-gray-200 rounded w-24" />
-      </CardHeader>
+      </CardContent>
       <CardFooter className="flex justify-between">
         <div className="h-6 bg-gray-200 rounded w-16" />
         <div className="h-8 bg-gray-200 rounded w-12" />

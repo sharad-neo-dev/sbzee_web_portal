@@ -5,7 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { BackToTop } from "@/components/ui/BackToTop";
 import { Providers } from "./providers";
-import { ClientLayout } from "./ClientLayout";
+import ClientLayout from "./ClientLayout";
 
 export const metadata: Metadata = {
   title: "Sbzee",

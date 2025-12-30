@@ -1,134 +1,149 @@
 "use client";
 
-import React from "react";
-import { ProductCard, Product } from "@/components/ui/ProductCard";
+import React, { useEffect } from "react";
+import { ProductCard } from "@/components/ui/ProductCard";
 import { HorizontalScrollContainer } from "@/components/ui/HorizontalScrollContainer";
 import { useGetFeaturedProductsQuery } from "@/redux/services/productsApi";
-
-const featuredProducts: Product[] = [
-  {
-    id: 1,
-    name: "Fresh Gourds",
-    price: 25.0,
-    unit: "500 gm",
-    category: "vegetables",
-    image:
-      "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&h=300&fit=crop",
-    rating: 4.5,
-    discount: 10,
-    description: "Fresh and organic gourds, perfect for cooking",
-  },
-  {
-    id: 2,
-    name: "Organic Cucumber",
-    price: 17.0,
-    unit: "1 kg",
-    category: "vegetables",
-    image:
-      "https://images.unsplash.com/photo-1568584711271-6c929fb49b60?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fGN1Y3VtYmVyfGVufDB8fDB8fHww",
-    rating: 4.2,
-    discount: 5,
-    description: "Crisp organic cucumbers, great for salads",
-  },
-  {
-    id: 3,
-    name: "Premium Onions",
-    price: 23.0,
-    unit: "1 kg",
-    category: "vegetables",
-    image:
-      "https://images.unsplash.com/photo-1508747703725-719777637510?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8b25pb25zfGVufDB8fDB8fHww",
-    rating: 4.0,
-    description: "Fresh red onions, essential for every kitchen",
-  },
-  {
-    id: 4,
-    name: "Red Delicious Apples",
-    price: 29.0,
-    unit: "1 kg",
-    category: "fruits",
-    image:
-      "https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?w=400&h=300&fit=crop",
-    rating: 4.7,
-    discount: 15,
-    description: "Sweet and juicy red apples",
-  },
-  {
-    id: 5,
-    name: "Fresh Bananas",
-    price: 19.0,
-    unit: "Dozen",
-    category: "fruits",
-    image:
-      "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=400&h=300&fit=crop",
-    rating: 4.3,
-    discount: 8,
-    description: "Ripe bananas, perfect for snacks",
-  },
-  {
-    id: 6,
-    name: "Organic Tomatoes",
-    price: 21.0,
-    unit: "1 kg",
-    category: "vegetables",
-    image:
-      "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400&h=300&fit=crop",
-    rating: 4.1,
-    description: "Fresh organic tomatoes, rich in flavor",
-  },
-  {
-    id: 7,
-    name: "Fresh Potatoes",
-    price: 18.0,
-    unit: "1 kg",
-    category: "vegetables",
-    image:
-      "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400&h=300&fit=crop",
-    rating: 4.0,
-    discount: 12,
-    description: "Premium quality potatoes",
-  },
-  {
-    id: 8,
-    name: "Green Grapes",
-    price: 35.0,
-    unit: "500 gm",
-    category: "fruits",
-    image:
-      "https://images.unsplash.com/photo-1537640538966-79f369143f8f?w=400&h=300&fit=crop",
-    rating: 4.6,
-    description: "Sweet seedless green grapes",
-  },
-];
+import { transformApiProductToUI } from "@/utils/productUtils";
+import { useDispatch } from "react-redux";
+import { addItem } from "@/redux/features/cart/cartSlice";
+import { getPreSignedUrls } from "@/utils/imageUtils";
 
 function FeaturedProducts() {
-  // const { data } = useGetFeaturedProductsQuery({ limit: 10, page: 1 });
+  const { data, isLoading, error } = useGetFeaturedProductsQuery({
+    limit: 10,
+    page: 1,
+  });
+  const dispatch = useDispatch();
 
-  const handleAddToCart = (product: Product) => {
-    console.log("Added to cart:", product);
+  useEffect(() => {
+    if (data?.data?.products) {
+      const imageUrls = data.data.products.map((product) => product.thumbnail);
+      getPreSignedUrls(imageUrls).catch((err) => {
+        console.error("Failed to pre-fetch image URLs:", err);
+      });
+    }
+  }, [data]);
+
+  const handleAddToCart = (product: any, selectedPrice?: any) => {
+    const cartItem = {
+      id: selectedPrice?.id || `${product.id}-default`,
+      productId: product.id,
+      name: product.name,
+      price: selectedPrice?.price || product.price,
+      originalPrice: selectedPrice?.originalPrice || product.price,
+      qty: 1,
+      image: product.image,
+      unit:
+        selectedPrice?.unitTypeDescription.replace("per ", "") || product.unit,
+      priceId: selectedPrice?.id,
+      unitTypeDescription: selectedPrice?.unitTypeDescription || product.unit,
+    };
+
+    dispatch(addItem(cartItem));
+
+    console.log("Added to cart:", cartItem);
   };
 
   const handleViewAll = () => {
     console.log("View all products");
   };
 
+  if (isLoading) {
+    return (
+      <div className="container-custom py-8">
+        <div className="mb-6">
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+            Featured Products
+          </h2>
+          <p className="text-sm md:text-base text-muted-foreground mt-1">
+            Loading fresh picks for you...
+          </p>
+        </div>
+        <div className="flex gap-4 overflow-x-auto pb-4">
+          {[...Array(5)].map((_, index) => (
+            <div key={index} className="min-w-[280px] md:min-w-[300px]">
+              <div className="animate-pulse">
+                <div className="h-44 bg-gray-200 rounded-t-lg" />
+                <div className="p-3 space-y-3">
+                  <div className="h-4 bg-gray-200 rounded" />
+                  <div className="h-3 bg-gray-200 rounded w-24" />
+                  <div className="h-6 bg-gray-200 rounded w-20" />
+                  <div className="h-9 bg-gray-200 rounded" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container-custom py-8">
+        <div className="mb-6">
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+            Featured Products
+          </h2>
+          <p className="text-sm md:text-base text-muted-foreground mt-1">
+            Fresh picks just for you
+          </p>
+        </div>
+        <div className="text-center py-8">
+          <p className="text-red-600 mb-4">
+            Failed to load featured products. Please try again.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="text-green-600 hover:text-green-700 font-medium">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const products = data?.data?.products || [];
+
+  if (products.length === 0) {
+    return (
+      <div className="container-custom py-8">
+        <div className="mb-6">
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+            Featured Products
+          </h2>
+          <p className="text-sm md:text-base text-muted-foreground mt-1">
+            Fresh picks just for you
+          </p>
+        </div>
+        <div className="text-center py-8">
+          <p className="text-gray-600">
+            No featured products available at the moment.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <HorizontalScrollContainer
       title="Featured Products"
       subtitle="Fresh picks just for you"
       onViewAllClick={handleViewAll}
-      className="mt-10 lg:mt-14"
-      containerClassName="px-4"
-    >
-      {featuredProducts.map((product) => (
-        <div key={product.id} className="min-w-[280px] md:min-w-[300px]">
-          <ProductCard
-            product={product}
-            onAddToCart={handleAddToCart}
-            variant="default"
-          />
-        </div>
-      ))}
+      className="mt-10 lg:mt-14">
+      {products.map((apiProduct) => {
+        const uiProduct = transformApiProductToUI(apiProduct);
+        return (
+          <div key={apiProduct.id} className="min-w-[280px] md:min-w-[300px]">
+            <ProductCard
+              product={uiProduct}
+              onAddToCart={handleAddToCart}
+              variant="default"
+            />
+          </div>
+        );
+      })}
     </HorizontalScrollContainer>
   );
 }

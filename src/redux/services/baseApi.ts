@@ -9,15 +9,28 @@ import {
   logout,
   setCredentials,
 } from "../features/auth/authSlice";
+import type { RootState } from "../store";
 
-// TODO: replace with your actual API base URL
 const BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
-  "https://dev.api.fruggies.co.in/api/v1";
+  process.env.NODE_ENV === "development"
+    ? "/api/v1"
+    : process.env.NEXT_PUBLIC_API_BASE_URL ||
+      "https://dev.api.fruggies.co.in/api/v1";
 
-const rawBaseQuery = fetchBaseQuery({
+// console.log("API Base URL:", BASE_URL);
+
+const baseQuery = fetchBaseQuery({
   baseUrl: BASE_URL,
-  credentials: "include",
+  prepareHeaders: (headers, { getState }) => {
+    const token = (getState() as RootState).auth.accessToken;
+
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+
+    headers.set("Content-Type", "application/json");
+    return headers;
+  },
 });
 
 const baseQueryWithReauth = async (
@@ -25,46 +38,25 @@ const baseQueryWithReauth = async (
   api: any,
   extraOptions: any
 ) => {
-  let result = (await rawBaseQuery(args, api, extraOptions)) as {
-    data?: unknown;
-    error?: FetchBaseQueryError;
-  };
+  let result = await baseQuery(args, api, extraOptions);
 
   if (result.error && result.error.status === 401) {
     try {
-      // attempt refresh via cookies (no body)
-      const refreshResult = (await rawBaseQuery(
+      const refreshResult = await baseQuery(
         { url: "/auth/refresh", method: "POST" },
         api,
         extraOptions
-      )) as { data?: any; error?: FetchBaseQueryError };
+      );
 
       if (refreshResult.data) {
-        const {
-          accessToken: newAccessToken,
-          refreshToken: newRefreshToken,
-          user,
-        } = (refreshResult.data as any) ?? {};
-        if (newAccessToken) {
-          api.dispatch(
-            updateToken({
-              accessToken: newAccessToken,
-              refreshToken: newRefreshToken ?? null,
-            })
-          );
+        const { accessToken, refreshToken, user } = refreshResult.data as any;
+        if (accessToken) {
+          api.dispatch(updateToken({ accessToken, refreshToken }));
         }
         if (user) {
-          api.dispatch(
-            setCredentials({
-              user,
-              accessToken: newAccessToken ?? null,
-              refreshToken: newRefreshToken ?? null,
-            })
-          );
+          api.dispatch(setCredentials({ user, accessToken, refreshToken }));
         }
-
-        // retry original query with new token
-        result = (await rawBaseQuery(args, api, extraOptions)) as any;
+        result = await baseQuery(args, api, extraOptions);
       } else {
         api.dispatch(logout());
       }
@@ -79,6 +71,6 @@ const baseQueryWithReauth = async (
 export const baseApi = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth as any,
-  tagTypes: ["Auth", "Products", "Cart", "featuredProducts"],
+  tagTypes: ["Auth", "Products", "Cart", "featuredProducts", "Categories"],
   endpoints: () => ({}),
 });

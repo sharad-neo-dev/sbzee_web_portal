@@ -31,7 +31,7 @@ export function BackToTop() {
   return (
     <button
       className={cn(
-        "back-to-top fixed bottom-8 right-8 z-50 w-12 h-12 bg-[#303981] text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center",
+        "back-to-top fixed bottom-8 right-8 z-50 w-12 h-12 bg-(--accent) text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center",
         isVisible
           ? "opacity-100 translate-y-0"
           : "opacity-0 translate-y-10 pointer-events-none"

@@ -16,10 +16,13 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { logout } from "@/redux/features/auth/authSlice";
 import { RootState } from "@/redux/store";
+import { useGetSearchProductQuery } from "@/redux/services/productsApi";
+import { PreSignedImage } from "../ui/PreSignedImage";
+import { useRouter } from "next/navigation";
 
 interface HeaderProps {
   onCartClick?: () => void;
@@ -32,9 +35,37 @@ export function Header({ onCartClick }: HeaderProps) {
 
   const [fade, setFade] = useState(false);
   const dispatch = useAppDispatch();
+  const router = useRouter();
 
   const { items } = useAppSelector((state: RootState) => state.cart);
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+
+  const [searchValue, setSearchValue] = useState("");
+  const [debouncedValue, setDebouncedValue] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = setTimeout(() => {
+      setDebouncedValue(searchValue.trim());
+    }, 400);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [searchValue]);
+
+  const { data: searchData, isFetching } = useGetSearchProductQuery(
+    debouncedValue,
+    {
+      skip: debouncedValue.length < 2,
+    }
+  );
 
   // console.log(items);
 
@@ -59,6 +90,11 @@ export function Header({ onCartClick }: HeaderProps) {
 
   const handleLogout = () => {
     dispatch(logout());
+  };
+  const handleCardClick = (id: string) => {
+    router.push(`/products/${id}`);
+    setSearchValue("");
+    setDebouncedValue("");
   };
 
   return (
@@ -194,17 +230,69 @@ export function Header({ onCartClick }: HeaderProps) {
             </div>
           </div>
 
-          <div className="flex items-center border border-white/30 rounded-md overflow-hidden flex-1 min-w-[220px] max-w-[700px] ml-4 bg-(--bg-white)">
+          <div className="flex items-center border border-white/30 rounded-md flex-1 min-w-[220px] max-w-[700px] ml-4 bg-(--bg-white)">
             <div className="pl-2 pr-1">
               <Search className="h-5 w-5 text-gray-400" />
             </div>
-            <input
-              type="text"
-              placeholder={placeholders[placeholderIndex]}
-              className={`py-3 px-2 outline-none border-none w-full text-base bg-(--bg-white) placeholder:transition-opacity placeholder:duration-300 ${
-                fade ? "placeholder:opacity-0" : "placeholder:opacity-100"
-              }`}
-            />
+            <div className="relative w-full">
+              <input
+                type="text"
+                value={searchValue}
+                onChange={(e) => {
+                  setSearchValue(e.target.value);
+                  setShowDropdown(true);
+                }}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+                onFocus={() => searchValue && setShowDropdown(true)}
+                placeholder={placeholders[placeholderIndex]}
+                className={`py-3 px-2 outline-none border-none w-full text-base bg-(--bg-white) placeholder:transition-opacity placeholder:duration-300 ${
+                  fade ? "placeholder:opacity-0" : "placeholder:opacity-100"
+                }`}
+              />
+
+              {/* search Dropdown */}
+              {showDropdown && debouncedValue.length >= 2 && (
+                <div className="absolute top-full left-0 right-0 bg-white border rounded-md shadow-lg mt-1 z-50 max-h-72 overflow-auto">
+                  {isFetching && (
+                    <div className="px-4 py-3 text-sm text-gray-500">
+                      Searching...
+                    </div>
+                  )}
+
+                  {!isFetching && searchData?.data?.length === 0 && (
+                    <div className="px-4 py-3 text-sm text-gray-500">
+                      No products found
+                    </div>
+                  )}
+
+                  {searchData?.data?.map((product) => (
+                    <button
+                      key={product.id}
+                      onClick={() => {
+                        handleCardClick(product.id);
+                        setShowDropdown(false);
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-3">
+                      <div className="relative w-10 h-10 shrink-0">
+                        <PreSignedImage
+                          src={product.thumbnail}
+                          alt={product.name}
+                          fill
+                          className="object-cover rounded"
+                          sizes="40px"
+                        />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{product.name}</p>
+                        <p className="text-xs text-gray-500">
+                          {product.category?.name}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {isAuthenticated ? (
@@ -229,6 +317,15 @@ export function Header({ onCartClick }: HeaderProps) {
                         className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100">
                         <Package className="w-4 h-4 text-gray-500" />
                         My Orders
+                      </Link>
+                    </li>
+
+                    <li>
+                      <Link
+                        href="/favourites"
+                        className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100">
+                        <Package className="w-4 h-4 text-gray-500" />
+                        Favourite Products
                       </Link>
                     </li>
 

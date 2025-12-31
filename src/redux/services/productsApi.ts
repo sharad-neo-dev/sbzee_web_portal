@@ -14,7 +14,7 @@ export interface Product {
     name: string;
     description?: string;
   };
-  price: Array<{
+  prices: Array<{
     id: string;
     currency: string;
     unitType: string;
@@ -99,6 +99,33 @@ export interface ProductsByCategoryResponse {
     };
   };
   error: null | string;
+}
+
+export interface searchProduct {
+  category: {
+    id: string;
+    name: string;
+  };
+  isInCartForAnyPrice: boolean;
+  id: string;
+  uniqueId: string;
+  name: string;
+  hindiName: string;
+  description: string;
+  thumbnail: string;
+  tags: string[];
+  isFeatured: boolean;
+  isFavourite: boolean;
+  price: {
+    id: string;
+    currency: string;
+    unitType: string;
+    unitTypeDescription: string;
+    price: number;
+    originalPrice: number;
+    isInCart: boolean;
+    cartQuantity: number;
+  }[];
 }
 
 export const productsApi = baseApi.injectEndpoints({
@@ -212,6 +239,21 @@ export const productsApi = baseApi.injectEndpoints({
       }),
       providesTags: ["Products"],
     }),
+    // get search Products
+    getSearchProduct: builder.query<
+      {
+        status: boolean;
+        message: string;
+        data: searchProduct[];
+      },
+      string
+    >({
+      query: (id) => ({
+        url: `/user/search/product/${id}`,
+        method: "GET",
+      }),
+      providesTags: ["Products"],
+    }),
 
     getProducts: builder.query<Product[], void>({
       query: () => ({ url: "/products", method: "GET" }),
@@ -235,4 +277,5 @@ export const {
   useCreateFavouriteProductMutation,
   useGetFavouriteProductQuery,
   useGetRelatedProductQuery,
+  useGetSearchProductQuery,
 } = productsApi;

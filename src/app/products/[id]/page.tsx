@@ -125,7 +125,7 @@ export default function ProductPage() {
   return (
     <div className="container mx-auto px-4 py-10 mt-20 space-y-20">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="space-y-4">
+        <div className="space-y-4 lg:sticky lg:top-24 h-fit self-start">
           <div className="relative h-96 w-full rounded-2xl overflow-hidden bg-gray-100">
             <PreSignedImage
               src={product.images?.[selectedImageIndex] || product.thumbnail}
@@ -165,7 +165,7 @@ export default function ProductPage() {
           )}
         </div>
 
-        <div className="space-y-6 lg:sticky lg:top-24 h-fit">
+        <div className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
             {product.hindiName && (

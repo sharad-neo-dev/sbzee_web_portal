@@ -1,6 +1,25 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type { CartItem, CartState } from "./cart.types";
 
+export const transformCartProductToCartItem = (product: any): CartItem => ({
+  id: `${product.productId}-${product.priceId}`,
+  productId: product.productId,
+  priceId: product.priceId,
+  name: product.name,
+  price: product.unitPrice,
+  originalPrice: product.originalPrice,
+  qty: product.quantity,
+  unitTypeDescription: product.unitTypeDescription,
+  image: product.thumbnail,
+  unit: product.unitTypeDescription,
+});
+
+export const transformCartItemToAddRequest = (item: CartItem) => ({
+  productId: item.productId,
+  price: item.priceId!,
+  quantity: item.qty,
+});
+
 const calcTotals = (state: CartState) => {
   const { totalQty, totalPrice, totalSavings } = state.items.reduce(
     (acc, item) => {
@@ -16,11 +35,20 @@ const calcTotals = (state: CartState) => {
   state.totalSavings = parseFloat(totalSavings.toFixed(2));
 };
 
-const initialState: CartState = {
+interface CartStateWithSync extends CartState {
+  isLoading: boolean;
+  lastSynced: string | null;
+  syncError: string | null;
+}
+
+const initialState: CartStateWithSync = {
   items: [],
   totalQty: 0,
   totalPrice: 0,
   totalSavings: 0,
+  isLoading: false,
+  lastSynced: null,
+  syncError: null,
 };
 
 const cartSlice = createSlice({
@@ -83,6 +111,32 @@ const cartSlice = createSlice({
       state.items = [];
       calcTotals(state);
     },
+
+    setCartFromBackend: (state, action: PayloadAction<any>) => {
+      if (action.payload?.products) {
+        state.items = action.payload.products.map(
+          transformCartProductToCartItem
+        );
+        calcTotals(state);
+        state.lastSynced = new Date().toISOString();
+        state.syncError = null;
+      }
+    },
+
+    setLoading: (state, action: PayloadAction<boolean>) => {
+      state.isLoading = action.payload;
+    },
+
+    setSyncError: (state, action: PayloadAction<string | null>) => {
+      state.syncError = action.payload;
+    },
+
+    revertCartState: (state, action: PayloadAction<CartState>) => {
+      state.items = action.payload.items;
+      state.totalQty = action.payload.totalQty;
+      state.totalPrice = action.payload.totalPrice;
+      state.totalSavings = action.payload.totalSavings;
+    },
   },
 });
 
@@ -93,5 +147,10 @@ export const {
   decreaseQty,
   updateQuantity,
   clearCart,
+  setCartFromBackend,
+  setLoading,
+  setSyncError,
+  revertCartState,
 } = cartSlice.actions;
+
 export default cartSlice.reducer;

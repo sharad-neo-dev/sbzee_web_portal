@@ -1,14 +1,8 @@
 "use client";
 
 import { ShoppingCart, X } from "lucide-react";
-import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { RootState } from "@/redux/store";
 import { PreSignedImage } from "./PreSignedImage";
-import {
-  increaseQty,
-  decreaseQty,
-  removeItem,
-} from "@/redux/features/cart/cartSlice";
+import { useCart } from "@/hooks/useCart";
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -16,17 +10,25 @@ interface CartDrawerProps {
 }
 
 export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
-  const dispatch = useAppDispatch();
-  const { items, totalQty, totalPrice } = useAppSelector(
-    (state: RootState) => state.cart
-  );
+  const {
+    cartItems: items,
+    totalQty,
+    totalPrice,
+    removeFromCart,
+    increaseQuantity,
+    decreaseQuantity,
+  } = useCart();
 
-  const handleDecreaseQty = (itemId: string) => {
-    dispatch(decreaseQty(itemId));
+  const handleDecreaseQty = (itemId: string, cartItem: any) => {
+    decreaseQuantity(itemId, cartItem);
   };
 
-  const handleIncreaseQty = (itemId: string) => {
-    dispatch(increaseQty(itemId));
+  const handleIncreaseQty = (itemId: string, cartItem: any) => {
+    increaseQuantity(itemId, cartItem);
+  };
+
+  const handleRemoveItem = (itemId: string, cartItem: any) => {
+    removeFromCart(itemId, cartItem);
   };
 
   return (
@@ -49,7 +51,6 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
           ${isOpen ? "translate-x-0" : "translate-x-full"}
           lg:w-[420px] xl:w-[480px] w-full bg-white shadow-2xl
         `}>
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white z-10">
           <div>
             <h2 className="text-xl font-bold text-gray-900">My Cart</h2>
@@ -62,7 +63,6 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
           </button>
         </div>
 
-        {/* Cart Content */}
         <div className="p-6 overflow-y-auto max-h-[calc(100vh-140px)]">
           {items.length === 0 ? (
             <div className="text-center py-12">
@@ -73,7 +73,6 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             <div className="space-y-4">
               {items.map((item: any) => (
                 <div key={item.id} className="flex gap-3 p-4 border rounded-xl">
-                  {/* Smaller Image */}
                   <div className="w-16 h-16 bg-gray-100 rounded-lg shrink-0 relative">
                     <PreSignedImage
                       src={item.image}
@@ -84,7 +83,6 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     />
                   </div>
 
-                  {/* Product Details */}
                   <div className="flex-1 min-w-0 py-1">
                     <h3 className="font-medium text-gray-900 text-sm line-clamp-2">
                       {item.name}
@@ -102,12 +100,16 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                         </span>
                       )}
                     </div>
+                    <button
+                      onClick={() => handleRemoveItem(item.id, item)}
+                      className="text-xs text-red-500 hover:text-red-700 mt-1 font-medium">
+                      Remove
+                    </button>
                   </div>
 
-                  {/* Quantity Controls */}
                   <div className="flex items-center gap-1 shrink-0">
                     <button
-                      onClick={() => handleDecreaseQty(item.id)}
+                      onClick={() => handleDecreaseQty(item.id, item)}
                       className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors text-sm font-medium cursor-pointer">
                       -
                     </button>
@@ -115,7 +117,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                       {item.qty}
                     </span>
                     <button
-                      onClick={() => handleIncreaseQty(item.id)}
+                      onClick={() => handleIncreaseQty(item.id, item)}
                       className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors text-sm font-medium cursor-pointer">
                       +
                     </button>
@@ -126,7 +128,6 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
           )}
         </div>
 
-        {/* Footer */}
         {items.length > 0 && (
           <div className="p-6 border-t bg-gray-50 sticky bottom-0">
             <div className="space-y-2">

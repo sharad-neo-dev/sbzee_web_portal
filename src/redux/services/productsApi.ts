@@ -7,11 +7,14 @@ export interface Product {
   hindiName: string;
   description: string;
   thumbnail: string;
+  images: string[];
+  tags: string[];
   category: {
     id: string;
     name: string;
+    description?: string;
   };
-  prices: Array<{
+  price: Array<{
     id: string;
     currency: string;
     unitType: string;
@@ -23,8 +26,11 @@ export interface Product {
   }>;
   isFeatured: boolean;
   isFavourite: boolean;
-  tags: string[];
   isInCartForAnyPrice: boolean;
+  fssaiLicenseNumber?: string;
+  additivesInfo?: string;
+  companyAddress?: string;
+  companyName?: string;
 }
 
 export interface FeaturedProductsResponse {
@@ -45,6 +51,16 @@ export interface FeaturedProductsResponse {
 export interface GetFeaturedProductsParams {
   limit: number;
   page: number;
+}
+
+export interface RelatedProductsResponse {
+  status: boolean;
+  message: string;
+  data: Product[];
+  error: null | string;
+}
+export interface GetRelatedProductsParams {
+  productId: string;
 }
 
 export interface Category {
@@ -134,9 +150,67 @@ export const productsApi = baseApi.injectEndpoints({
     }),
 
     // Get product by ID
-    getProductById: builder.query<Product, string>({
-      query: (id) => ({ url: `/products/${id}`, method: "GET" }),
+    getProductById: builder.query<
+      {
+        success: boolean;
+        message: string;
+        data?: Product;
+      },
+      string
+    >({
+      query: (id) => ({
+        url: `/user/product/${id}`,
+        method: "GET",
+      }),
       providesTags: (result, error, id) => [{ type: "Products", id }],
+    }),
+    // Create favourite Products
+    createFavouriteProduct: builder.mutation<
+      {
+        status: boolean;
+        message: string;
+        data: { isFavorite: boolean };
+      },
+      string
+    >({
+      query: (id) => ({
+        url: `/user/favorites/toggle/${id}`,
+        method: "POST",
+      }),
+      invalidatesTags: (result, error, id) => [
+        { type: "Products", id },
+        "featuredProducts",
+      ],
+    }),
+
+    // get favourite Products
+    getFavouriteProduct: builder.query<
+      FeaturedProductsResponse,
+      GetFeaturedProductsParams
+    >({
+      query: ({ limit, page }) => ({
+        url: `/user/favorites`,
+        method: "GET",
+        params: {
+          limit,
+          page,
+        },
+      }),
+      providesTags: ["Products"],
+    }),
+    // get Related Products
+    getRelatedProduct: builder.query<
+      RelatedProductsResponse,
+      GetRelatedProductsParams
+    >({
+      query: ({ productId }) => ({
+        url: `/product/related-products`,
+        method: "GET",
+        params: {
+          productId,
+        },
+      }),
+      providesTags: ["Products"],
     }),
 
     getProducts: builder.query<Product[], void>({
@@ -158,4 +232,7 @@ export const {
   useGetFeaturedProductsQuery,
   useGetCategoriesQuery,
   useGetProductsByCategoryQuery,
+  useCreateFavouriteProductMutation,
+  useGetFavouriteProductQuery,
+  useGetRelatedProductQuery,
 } = productsApi;

@@ -41,12 +41,10 @@ function FeaturedProducts() {
     };
 
     dispatch(addItem(cartItem));
-
-    console.log("Added to cart:", cartItem);
   };
 
   const handleViewAll = () => {
-    console.log("View all products");
+    // console.log("View all products");
   };
 
   if (isLoading) {

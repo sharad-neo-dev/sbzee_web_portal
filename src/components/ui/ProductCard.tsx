@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Star, ShoppingCart } from "lucide-react";
+import { Star, ShoppingCart, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,8 +9,8 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { PreSignedImage } from "@/components/ui/PreSignedImage";
 import { useDispatch, useSelector } from "react-redux";
-import { RootState } from "@/redux/store";
-import { decreaseQty, increaseQty } from "@/redux/features/cart/cartSlice";
+import { useCart } from "@/hooks/useCart";
+import { useCreateFavouriteProductMutation } from "@/redux/services/productsApi";
 
 export interface ProductPrice {
   id: string;
@@ -55,8 +55,12 @@ export function ProductCard({
 }: ProductCardProps) {
   const router = useRouter();
   const [selectedPriceIndex, setSelectedPriceIndex] = useState(0);
-
-  const dispatch = useDispatch();
+  const {
+    addToCart,
+    increaseQuantity,
+    decreaseQuantity,
+    getItemByProductAndPrice,
+  } = useCart();
 
   const {
     name,
@@ -95,11 +99,7 @@ export function ProductCard({
         )
       : 0;
 
-  const cartItem = useSelector((state: RootState) =>
-    state.cart.items.find(
-      (i) => i.productId === product.id && i.priceId === selectedPrice?.id
-    )
-  );
+  const cartItem = getItemByProductAndPrice(product.id, selectedPrice?.id);
   const currentQty = cartItem?.qty ?? 0;
 
   const handleCardClick = () => {
@@ -108,6 +108,22 @@ export function ProductCard({
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    const cartItem = {
+      id: `${product.id}-${selectedPrice.id}`,
+      productId: product.id,
+      priceId: selectedPrice.id,
+      name: product.name,
+      price: selectedPrice.price,
+      originalPrice: selectedPrice.originalPrice,
+      qty: 1,
+      unitTypeDescription: selectedPrice.unitTypeDescription,
+      image: product.image || product.thumbnail || "",
+      unit: selectedPrice.unitTypeDescription,
+    };
+
+    addToCart(cartItem);
+
     if (onAddToCart) {
       onAddToCart(product, selectedPrice);
     }
@@ -116,6 +132,27 @@ export function ProductCard({
   const handlePriceSelect = (e: React.MouseEvent, index: number) => {
     e.stopPropagation();
     setSelectedPriceIndex(index);
+  };
+
+  const [isFav, setIsFav] = useState(product.isFavourite);
+
+  useEffect(() => {
+    setIsFav(product.isFavourite);
+  }, [product.isFavourite]);
+
+  const [createFavouriteProduct, { isLoading }] =
+    useCreateFavouriteProductMutation();
+
+  const handleFavourite = async () => {
+    const prev = isFav;
+    setIsFav(!prev);
+
+    try {
+      await createFavouriteProduct(product.id).unwrap();
+    } catch (err) {
+      setIsFav(prev);
+      console.error("Favourite failed", err);
+    }
   };
 
   if (variant === "compact") {
@@ -194,8 +231,8 @@ export function ProductCard({
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="font-semibold text-lg">{name}</h3>
-                <Badge variant="outline" className="mt-1">
-                  {category}
+                <Badge variant="outline" className="mt-1 bg-red-500 text-white">
+                  Fresh
                 </Badge>
               </div>
 
@@ -253,10 +290,9 @@ export function ProductCard({
     );
   }
 
-  // Default vertical variant
   return (
     <Card
-      className={`shadow-none border-none overflow-hidden bg-white hover:shadow-md transition-all cursor-pointer ${className}`}>
+      className={`shadow-lg border-none overflow-hidden bg-white hover:scale-105 duration-300 transition-all cursor-pointer ${className}`}>
       <div
         className="relative h-44 w-full overflow-hidden"
         onClick={handleCardClick}>
@@ -268,16 +304,31 @@ export function ProductCard({
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 256px"
         />
 
-        {discount > 0 && (
+        {/* {discount > 0 && (
           <Badge className="absolute top-2 left-2 bg-red-500 text-white">
             -{discount}%
           </Badge>
-        )}
+        )} */}
+
+        <div
+          className="absolute top-2 left-2 bg-gray-400 text-white shadow-sm p-2 rounded-2xl cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleFavourite();
+          }}>
+          <Heart
+            size={25}
+            className={cn(
+              "transition-colors",
+              isFav ? "fill-white text-white" : "text-white"
+            )}
+          />
+        </div>
 
         <Badge
           variant="secondary"
-          className="absolute top-2 right-2 bg-white/95 text-gray-700 shadow-sm">
-          {category}
+          className="absolute top-2 right-2 bg-red-500 text-white shadow-sm">
+          Fresh
         </Badge>
 
         {!inStock && (
@@ -333,24 +384,25 @@ export function ProductCard({
             )}
           </div>
 
-          {/* Price variants selector (if multiple prices) */}
-          {availablePrices.length > 1 && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {availablePrices.map((price, index) => (
-                <button
-                  key={price.id}
-                  onClick={(e) => handlePriceSelect(e, index)}
-                  className={cn(
-                    "text-xs px-2 py-1 rounded border transition-colors",
-                    selectedPriceIndex === index
-                      ? "bg-green-100 border-green-500 text-green-700"
-                      : "bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200"
-                  )}>
-                  {price.unitTypeDescription}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="mt-2 min-h-8">
+            {availablePrices.length > 1 && (
+              <div className="flex flex-wrap gap-1">
+                {availablePrices.map((price, index) => (
+                  <button
+                    key={price.id}
+                    onClick={(e) => handlePriceSelect(e, index)}
+                    className={cn(
+                      "text-xs px-2 py-1 rounded border transition-colors",
+                      selectedPriceIndex === index
+                        ? "bg-green-100 border-green-500 text-green-700"
+                        : "bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200"
+                    )}>
+                    {price.unitTypeDescription}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {currentQty === 0 ? (
@@ -364,13 +416,16 @@ export function ProductCard({
           </Button>
         ) : (
           <div className="w-[80%] flex mx-auto bg-(--accent) hover:bg-(--accent-dark) rounded-md text-white">
-            <div className="flex items-center justify-between  px-2 py-1 w-full">
+            <div className="flex items-center justify-between px-2 py-1 w-full">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  dispatch(decreaseQty(cartItem!.id));
+                  if (cartItem) {
+                    decreaseQuantity(cartItem.id, cartItem);
+                  }
                 }}
-                className="px-3 text-lg font-semibold cursor-pointer">
+                className="px-3 text-lg font-semibold cursor-pointer"
+                disabled={!cartItem}>
                 -
               </button>
               <span className="px-3 text-md font-medium cursor-pointer">
@@ -379,9 +434,12 @@ export function ProductCard({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  dispatch(increaseQty(cartItem!.id));
+                  if (cartItem) {
+                    increaseQuantity(cartItem.id, cartItem);
+                  }
                 }}
-                className="px-3 text-lg font-semibold cursor-pointer">
+                className="px-3 text-lg font-semibold cursor-pointer"
+                disabled={!cartItem}>
                 +
               </button>
             </div>

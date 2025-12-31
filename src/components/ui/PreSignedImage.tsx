@@ -29,14 +29,6 @@ export function PreSignedImage({
   const { preSignedUrl, isLoading, error } = usePreSignedImage(src);
   const [imgError, setImgError] = useState(false);
 
-  // console.log("PreSignedImage debug:", {
-  //   src,
-  //   preSignedUrl,
-  //   isLoading,
-  //   error,
-  //   imgError,
-  // });
-
   // Show loading skeleton
   if (isLoading) {
     return (

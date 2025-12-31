@@ -3,10 +3,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useSelector } from "react-redux";
-// OR if you have typed hooks:
-// import { useAppSelector } from "@/redux/hooks";
 
-// Simple cache - no expiry for now
 const imageCache = new Map<string, string>();
 
 export const usePreSignedImage = (imageUrl?: string) => {
@@ -14,11 +11,8 @@ export const usePreSignedImage = (imageUrl?: string) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ Get token from Redux auth slice
+  //  Get token from Redux auth slice
   const accessToken = useSelector((state: any) => state.auth.accessToken);
-
-  // If using typed hook:
-  // const accessToken = useAppSelector(state => state.auth.accessToken);
 
   useEffect(() => {
     if (!imageUrl) {
@@ -26,7 +20,6 @@ export const usePreSignedImage = (imageUrl?: string) => {
       return;
     }
 
-    // Check cache first
     const cached = imageCache.get(imageUrl);
     if (cached) {
       setPreSignedUrl(cached);
@@ -61,7 +54,6 @@ export const usePreSignedImage = (imageUrl?: string) => {
       } catch (err: any) {
         console.error("Error fetching pre-signed URL:", err);
         setError(err?.message ?? "Failed to load image");
-        // Fallback to original image URL
         setPreSignedUrl(imageUrl);
       } finally {
         setIsLoading(false);
@@ -69,7 +61,7 @@ export const usePreSignedImage = (imageUrl?: string) => {
     };
 
     fetchPreSignedUrl();
-  }, [imageUrl, accessToken]); // ✅ token included as dependency
+  }, [imageUrl, accessToken]);
 
   return { preSignedUrl, isLoading, error };
 };

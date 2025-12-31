@@ -85,11 +85,6 @@ export default function CategoriesSection() {
     };
 
     dispatch(addItem(cartItem));
-    console.log("Added to cart:", cartItem);
-  };
-
-  const handleViewAll = () => {
-    console.log("View all categories");
   };
 
   const handleLoadMore = () => {

@@ -2,7 +2,6 @@ import {
   createApi,
   fetchBaseQuery,
   FetchArgs,
-  FetchBaseQueryError,
 } from "@reduxjs/toolkit/query/react";
 import {
   updateToken,

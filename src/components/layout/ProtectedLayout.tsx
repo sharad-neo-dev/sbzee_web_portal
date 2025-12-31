@@ -8,6 +8,7 @@ import { useAppSelector } from "@/redux/hooks";
 import { RootState } from "@/redux/store";
 import FloatingCart from "../ui/FloatingCart";
 import CartDrawer from "../ui/CartDrawer";
+import CartInitializer from "../providers/CartInitializer";
 
 interface ProtectedLayoutProps {
   children: ReactNode;
@@ -18,6 +19,7 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   return (
     <div className="min-h-screen flex flex-col">
+      <CartInitializer />
       <Header onCartClick={() => setCartDrawerOpen(true)} />
       <main className="flex-1">{children}</main>
       <Footer />

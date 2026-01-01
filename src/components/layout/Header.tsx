@@ -13,6 +13,7 @@ import {
   Settings,
   TicketPercent,
   LogOut,
+  Heart,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -324,7 +325,7 @@ export function Header({ onCartClick }: HeaderProps) {
                       <Link
                         href="/favourites"
                         className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100">
-                        <Package className="w-4 h-4 text-gray-500" />
+                        <Heart className="w-4 h-4 text-gray-500" />
                         Favourite Products
                       </Link>
                     </li>

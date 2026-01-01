@@ -1,76 +1,170 @@
 import { baseApi } from "./baseApi";
-import { setCredentials, updateToken } from "../features/auth/authSlice";
-import type { User } from "../features/auth/auth.types";
+import {
+  setCredentials,
+  updateToken,
+  sendOtpSuccess,
+  verifyOtpSuccess,
+  logout,
+} from "../features/auth/authSlice";
+import type {
+  AuthResponse,
+  LoginRequest,
+  VerifyOtpRequest,
+  User,
+  AuthTokens,
+} from "../features/auth/auth.types";
 
-interface AuthResponse {
-  user: User;
-  accessToken: string;
-  refreshToken: string;
-}
+const saveAuthToStorage = (user: User, tokens: AuthTokens) => {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(
+      "auth",
+      JSON.stringify({
+        user,
+        accessToken: tokens.accessToken.token,
+        refreshToken: tokens.refreshToken.token,
+      })
+    );
+  }
+};
 
-interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-interface RegisterRequest {
-  name: string;
-  email: string;
-  password: string;
-}
+const removeAuthFromStorage = () => {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("auth");
+  }
+};
 
 export const authApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    // Send OTP for login
     login: builder.mutation<AuthResponse, LoginRequest>({
-      query: (body) => ({ url: "/auth/login", method: "POST", body }),
-      invalidatesTags: ["Auth"],
+      query: (body) => ({
+        url: "/user/login",
+        method: "POST",
+        body,
+      }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          dispatch(setCredentials(data));
-          if (typeof window !== "undefined") {
-            localStorage.setItem("auth", JSON.stringify(data));
+          if (data.success) {
+            dispatch(sendOtpSuccess({ user: data.data.user }));
           }
-        } catch {}
+        } catch (error) {
+          console.log(error);
+        }
       },
     }),
-    register: builder.mutation<AuthResponse, RegisterRequest>({
-      query: (body) => ({ url: "/auth/register", method: "POST", body }),
-      invalidatesTags: ["Auth"],
+
+    // Verify OTP
+    verifyOtp: builder.mutation<AuthResponse, VerifyOtpRequest>({
+      query: (body) => ({
+        url: "/user/verify-otp",
+        method: "POST",
+        body,
+      }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          dispatch(setCredentials(data));
-          if (typeof window !== "undefined") {
-            localStorage.setItem("auth", JSON.stringify(data));
+          if (data.success && data.data.accessToken && data.data.refreshToken) {
+            const tokens: AuthTokens = {
+              accessToken: data.data.accessToken,
+              refreshToken: data.data.refreshToken,
+            };
+            dispatch(verifyOtpSuccess({ user: data.data.user, tokens }));
+            saveAuthToStorage(data.data.user, tokens);
           }
-        } catch {}
+        } catch (error) {
+          console.log(error);
+        }
       },
     }),
-    me: builder.query<User, void>({
-      query: () => ({ url: "/auth/me", method: "GET" }),
+
+    // Get current user (me)
+    me: builder.query<{ success: boolean; data: { user: User } }, void>({
+      query: () => ({
+        url: "/user/me",
+        method: "GET",
+      }),
       providesTags: ["Auth"],
-    }),
-    refresh: builder.mutation<AuthResponse, { refreshToken: string }>({
-      query: (body) => ({ url: "/auth/refresh", method: "POST", body }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          dispatch(
-            updateToken({
-              accessToken: data.accessToken,
-              refreshToken: data.refreshToken,
-            })
-          );
-          if (typeof window !== "undefined") {
-            const raw = localStorage.getItem("auth");
-            const current = raw ? JSON.parse(raw) : {};
-            localStorage.setItem(
-              "auth",
-              JSON.stringify({ ...current, ...data })
-            );
+          if (data.success) {
+            if (typeof window !== "undefined") {
+              const authData = localStorage.getItem("auth");
+              if (authData) {
+                const { accessToken, refreshToken } = JSON.parse(authData);
+                dispatch(
+                  setCredentials({
+                    user: data.data.user,
+                    accessToken,
+                    refreshToken,
+                  })
+                );
+              }
+            }
           }
-        } catch {}
+        } catch (error) {
+          dispatch(logout());
+          removeAuthFromStorage();
+        }
+      },
+    }),
+
+    // Logout
+    logout: builder.mutation<void, void>({
+      query: () => ({
+        url: "/user/logout",
+        method: "POST",
+      }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+        } finally {
+          dispatch(logout());
+          removeAuthFromStorage();
+        }
+      },
+    }),
+
+    // Refresh token
+    refreshToken: builder.mutation<AuthResponse, { refreshToken: string }>({
+      query: (body) => ({
+        url: "/auth/refresh",
+        method: "POST",
+        body,
+      }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          if (data.success && data.data.accessToken && data.data.refreshToken) {
+            const tokens: AuthTokens = {
+              accessToken: data.data.accessToken,
+              refreshToken: data.data.refreshToken,
+            };
+            dispatch(
+              updateToken({
+                accessToken: tokens.accessToken.token,
+                refreshToken: tokens.refreshToken.token,
+              })
+            );
+
+            if (typeof window !== "undefined") {
+              const raw = localStorage.getItem("auth");
+              const current = raw ? JSON.parse(raw) : {};
+              localStorage.setItem(
+                "auth",
+                JSON.stringify({
+                  ...current,
+                  accessToken: tokens.accessToken.token,
+                  refreshToken: tokens.refreshToken.token,
+                })
+              );
+            }
+          }
+        } catch (error) {
+          dispatch(logout());
+          removeAuthFromStorage();
+        }
       },
     }),
   }),
@@ -78,7 +172,8 @@ export const authApi = baseApi.injectEndpoints({
 
 export const {
   useLoginMutation,
-  useRegisterMutation,
+  useVerifyOtpMutation,
   useMeQuery,
-  useRefreshMutation,
+  useLogoutMutation,
+  useRefreshTokenMutation,
 } = authApi;

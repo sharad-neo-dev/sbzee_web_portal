@@ -21,7 +21,7 @@ export function Header() {
   const { items, totalQty } = useAppSelector((state) => state.cart);
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
 
-  console.log(items);
+  // console.log(items);
 
   const placeholders = [
     "Search spinach",
@@ -52,8 +52,7 @@ export function Header() {
         <div className="hidden md:flex items-center h-18 lg:h-22 w-full gap-8 lg:gap-10">
           <Link
             href="/"
-            className="flex items-center space-x-2 shrink-0 mr-4 lg:mr-8"
-          >
+            className="flex items-center space-x-2 shrink-0 mr-4 lg:mr-8">
             <Image
               src="/assets/img/LogoWhite.png"
               alt="Sbzee Logo"
@@ -92,8 +91,7 @@ export function Header() {
               <span className="text-white">Hi, {user?.name}</span>
               <Button
                 onClick={handleLogout}
-                className="bg-white text-(--accent) hover:bg-white/90"
-              >
+                className="bg-white text-(--accent) hover:bg-white/90">
                 Logout
               </Button>
             </div>

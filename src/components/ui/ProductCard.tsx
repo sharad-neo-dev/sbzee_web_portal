@@ -1,37 +1,51 @@
 "use client";
 
 import React from "react";
-import { Star, ShoppingCart } from "lucide-react";
+import { motion, Variants } from "framer-motion";
+import { Star, ShoppingCart, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import Image from "next/image";
-
-export interface Product {
-  id: number | string;
-  name: string;
-  price: number;
-  unit: string;
-  category: string;
-  image: string;
-  rating?: number;
-  discount?: number;
-  description?: string;
-  inStock?: boolean;
-}
+import { cn } from "@/lib/utils";
+import { useAppDispatch } from "@/redux/hooks";
+import { addToCart } from "@/redux/features/cart/cartSlice";
+import type { UIProduct } from "@/types/products.types";
+import { useToggleFavoriteMutation } from "@/redux/services/productsApi";
+import { ProductImage } from "./ProductImage";
+import { useRouter } from "next/navigation";
 
 interface ProductCardProps {
-  product: Product;
-  onAddToCart?: (product: Product) => void;
+  product: UIProduct;
+  onAddToCart?: (product: UIProduct) => void;
   className?: string;
   variant?: "default" | "compact" | "detailed";
   orientation?: "vertical" | "horizontal";
+  showFavorite?: boolean;
+  showHindiName?: boolean;
 }
+
+// Framer Motion variants with proper typing
+const cardVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    y: 20,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.3,
+      ease: "easeOut",
+    },
+  },
+  hover: {
+    y: -4,
+    transition: {
+      duration: 0.2,
+      ease: "easeInOut",
+    },
+  },
+};
 
 export function ProductCard({
   product,
@@ -39,157 +53,391 @@ export function ProductCard({
   className = "",
   variant = "default",
   orientation = "vertical",
+  showFavorite = true,
+  showHindiName = true,
 }: ProductCardProps) {
+  const dispatch = useAppDispatch();
+  const router = useRouter();
+  const [toggleFavorite] = useToggleFavoriteMutation();
+
   const {
+    id,
     name,
+    hindiName,
     price,
+    originalPrice,
     unit,
     category,
     image,
-    rating = 0,
     discount = 0,
+    isFavourite,
+    isInCart,
+    cartQuantity,
     description,
     inStock = true,
+    priceOptions,
   } = product;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    // Add to Redux cart - using the first price option by default
+    const selectedPrice =
+      priceOptions && priceOptions.length > 0 ? priceOptions[0] : null;
+
+    dispatch(
+      addToCart({
+        id,
+        name,
+        price,
+        quantity: 1,
+        image,
+        unit,
+        category,
+        priceId: selectedPrice?.id,
+        unitType: selectedPrice?.unitType,
+      })
+    );
+
+    // Call custom handler if provided
     if (onAddToCart) {
       onAddToCart(product);
     }
   };
 
-  const calculateOriginalPrice = () => {
-    if (discount > 0) {
-      return (price * 100) / (100 - discount);
+  const handleToggleFavorite = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await toggleFavorite({ productId: id }).unwrap();
+    } catch (error) {
+      console.error("Failed to toggle favorite:", error);
     }
-    return null;
   };
 
-  const originalPrice = calculateOriginalPrice();
+  const calculateDiscount = () => {
+    if (originalPrice > price && originalPrice > 0) {
+      return Math.round(((originalPrice - price) / originalPrice) * 100);
+    }
+    return 0;
+  };
+
+  const actualDiscount = calculateDiscount();
+  const handleCardClick = () => {
+    router.push(`/product/${id}`);
+  };
 
   if (variant === "compact") {
     return (
-      <Card
-        className={`overflow-hidden hover:shadow-lg transition-shadow ${className}`}>
-        <div className="flex">
-          <div className="relative w-24 h-24 shrink-0">
-            <Image
-              src={image}
-              alt={name}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, 96px"
-            />
-            {discount > 0 && (
-              <Badge className="absolute top-1 left-1 bg-red-500 hover:bg-red-600 text-xs">
-                -{discount}%
-              </Badge>
-            )}
-          </div>
-
-          <div className="flex-1 p-3 flex flex-col justify-between">
-            <div>
-              <h3 className="font-medium text-sm line-clamp-1">{name}</h3>
-              <div className="flex items-center mt-1">
-                <span className="text-lg font-bold">₹{price.toFixed(2)}</span>
-                {originalPrice && (
-                  <span className="text-xs text-gray-500 line-through ml-1">
-                    ₹{originalPrice.toFixed(2)}
-                  </span>
-                )}
-                <span className="text-xs text-gray-500 ml-1">/{unit}</span>
-              </div>
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        whileHover="hover"
+        variants={cardVariants}>
+        <Card
+          className={cn(
+            "overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group",
+            className
+          )}>
+          <div className="flex">
+            <div className="relative w-24 h-24 shrink-0">
+              <ProductImage
+                src={image}
+                alt={name}
+                fill
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                isPreSigned={true} // Add this prop
+              />
+              {actualDiscount > 0 && (
+                <Badge className="absolute top-1 left-1 bg-red-500 hover:bg-red-600 text-xs">
+                  -{actualDiscount}%
+                </Badge>
+              )}
             </div>
 
-            <Button
-              size="sm"
-              onClick={handleAddToCart}
-              className="w-full bg-(--accent) hover:bg-(--accent-dark)">
-              <ShoppingCart className="h-3 w-3 mr-1" />
-              Add
-            </Button>
+            <div className="flex-1 p-3 flex flex-col justify-between">
+              <div>
+                <h3 className="font-medium text-sm line-clamp-1">{name}</h3>
+                {showHindiName && hindiName && (
+                  <p className="text-xs text-gray-500 mt-0.5">{hindiName}</p>
+                )}
+                <div className="flex items-center mt-1">
+                  <span className="text-lg font-bold">₹{price.toFixed(2)}</span>
+                  {originalPrice > price && (
+                    <span className="text-xs text-gray-500 line-through ml-1">
+                      ₹{originalPrice.toFixed(2)}
+                    </span>
+                  )}
+                  <span className="text-xs text-gray-500 ml-1">/{unit}</span>
+                </div>
+              </div>
+
+              <Button
+                size="sm"
+                onClick={handleAddToCart}
+                className="w-full bg-green-600 hover:bg-green-700 text-white">
+                <ShoppingCart className="h-3 w-3 mr-1" />
+                {cartQuantity > 0 ? `${cartQuantity} in cart` : "Add"}
+              </Button>
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      </motion.div>
     );
   }
 
   if (orientation === "horizontal") {
     return (
-      <Card
-        className={`overflow-hidden hover:shadow-lg transition-shadow ${className}`}>
-        <div className="flex">
-          <div className="relative w-32 h-32 shrink-0">
-            <Image
-              src={image}
-              alt={name}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, 128px"
-            />
-            {discount > 0 && (
-              <Badge className="absolute top-2 left-2 bg-red-500 hover:bg-red-600">
-                -{discount}%
-              </Badge>
-            )}
-          </div>
-
-          <div className="flex-1 p-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="font-semibold text-lg">{name}</h3>
-                <Badge variant="outline" className="mt-1">
-                  {category}
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        whileHover="hover"
+        variants={cardVariants}>
+        <Card
+          className={cn(
+            "overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group",
+            className
+          )}>
+          <div className="flex">
+            <div className="relative w-32 h-32 shrink-0">
+              <ProductImage
+                src={image}
+                alt={name}
+                fill
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                isPreSigned={true}
+              />
+              {actualDiscount > 0 && (
+                <Badge className="absolute top-2 left-2 bg-red-500 hover:bg-red-600">
+                  -{actualDiscount}%
                 </Badge>
+              )}
+            </div>
+
+            <div className="flex-1 p-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-semibold text-lg">{name}</h3>
+                  {showHindiName && hindiName && (
+                    <p className="text-sm text-gray-500 mt-0.5">{hindiName}</p>
+                  )}
+                  <Badge variant="outline" className="mt-1">
+                    {category}
+                  </Badge>
+                </div>
+
+                {showFavorite && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleToggleFavorite}
+                    className="h-8 w-8">
+                    <Heart
+                      className={cn(
+                        "h-4 w-4",
+                        isFavourite
+                          ? "fill-red-500 text-red-500"
+                          : "text-gray-400"
+                      )}
+                    />
+                  </Button>
+                )}
               </div>
 
-              <div className="text-right">
-                <div className="text-2xl font-bold">₹{price.toFixed(2)}</div>
+              <div className="text-right mt-2">
+                <div className="text-2xl font-bold text-gray-900">
+                  ₹{price.toFixed(2)}
+                </div>
                 <div className="text-sm text-gray-500">/{unit}</div>
-                {originalPrice && (
+                {originalPrice > price && (
                   <div className="text-sm text-gray-400 line-through">
                     ₹{originalPrice.toFixed(2)}
                   </div>
                 )}
               </div>
+
+              {description && (
+                <p className="text-sm text-gray-600 mt-2 line-clamp-2">
+                  {description}
+                </p>
+              )}
+
+              <div className="flex items-center justify-between mt-4">
+                {isInCart && cartQuantity > 0 && (
+                  <div className="text-sm text-green-600 flex items-center">
+                    <ShoppingCart className="h-3 w-3 mr-1" />
+                    {cartQuantity} in cart
+                  </div>
+                )}
+
+                <Button
+                  onClick={handleAddToCart}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  disabled={!inStock}>
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  {inStock ? "Add to Cart" : "Out of Stock"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </motion.div>
+    );
+  }
+
+  // Default vertical card
+  return (
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      whileHover="hover"
+      variants={cardVariants}>
+      <Card
+        className={cn(
+          "shadow-sm border overflow-hidden bg-white hover:shadow-md transition-all cursor-pointer group h-full flex flex-col",
+          className
+        )}
+        onClick={handleCardClick}>
+        {/* Image Container */}
+        <div className="relative h-48 w-full overflow-hidden bg-gray-100">
+          <ProductImage
+            src={image}
+            alt={name}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            isPreSigned={true}
+            priority={variant === "detailed"}
+          />
+
+          {/* Discount Badge */}
+          {actualDiscount > 0 && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="absolute top-2 left-2">
+              <Badge className="bg-red-500 text-white shadow-lg">
+                -{actualDiscount}%
+              </Badge>
+            </motion.div>
+          )}
+
+          {/* Category Badge */}
+          <Badge
+            variant="secondary"
+            className="absolute top-2 right-2 bg-white/95 text-gray-700 shadow-sm backdrop-blur-sm">
+            {category}
+          </Badge>
+
+          {/* Favorite Button */}
+          {showFavorite && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleToggleFavorite}
+              className="absolute bottom-2 right-2 bg-white/90 hover:bg-white backdrop-blur-sm h-8 w-8 rounded-full shadow-sm">
+              <Heart
+                className={cn(
+                  "h-4 w-4 transition-all",
+                  isFavourite
+                    ? "fill-red-500 text-red-500 scale-110"
+                    : "text-gray-500 hover:text-red-400"
+                )}
+              />
+            </Button>
+          )}
+
+          {/* Out of Stock Overlay */}
+          {!inStock && (
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+              <Badge className="bg-gray-900 text-white px-3 py-1">
+                Out of Stock
+              </Badge>
+            </div>
+          )}
+        </div>
+
+        {/* Content */}
+        <CardContent className="p-4 flex-1 flex flex-col">
+          <div className="flex-1">
+            <h3 className="font-semibold text-base line-clamp-1 text-gray-900">
+              {name}
+            </h3>
+
+            {showHindiName && hindiName && (
+              <p className="text-sm text-gray-500 mt-1">{hindiName}</p>
+            )}
+
+            {/* Price Section */}
+            <div className="mt-3">
+              <div className="flex items-baseline">
+                <span className="text-xl font-bold text-gray-900">
+                  ₹{price.toFixed(2)}
+                </span>
+                <span className="text-gray-500 text-sm ml-1">/{unit}</span>
+              </div>
+
+              {originalPrice > price && (
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-sm text-gray-400 line-through">
+                    ₹{originalPrice.toFixed(2)}
+                  </span>
+                  {actualDiscount > 0 && (
+                    <span className="text-xs font-medium text-red-500">
+                      Save {actualDiscount}%
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
-            {description && (
-              <p className="text-sm text-gray-600 mt-2 line-clamp-2">
+            {/* Description (only for detailed variant) */}
+            {variant === "detailed" && description && (
+              <p className="text-sm text-gray-600 mt-3 line-clamp-2">
                 {description}
               </p>
             )}
+          </div>
 
-            <div className="flex items-center justify-between mt-4">
-              {rating > 0 && (
-                <div className="flex items-center">
-                  <div className="flex">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`h-4 w-4 ${
-                          i < Math.floor(rating)
-                            ? "text-yellow-400 fill-yellow-400"
-                            : "text-gray-300"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-sm text-gray-600 ml-2">
-                    {rating.toFixed(1)}
-                  </span>
-                </div>
+          {/* Add to Cart Button */}
+          <CardFooter className="p-0 mt-4">
+            <Button
+              onClick={handleAddToCart}
+              size="sm"
+              className={cn(
+                "w-full transition-all duration-300",
+                isInCart && cartQuantity > 0
+                  ? "bg-green-700 hover:bg-green-800"
+                  : "bg-green-600 hover:bg-green-700"
               )}
+              disabled={!inStock}>
+              <ShoppingCart className="h-4 w-4 mr-2" />
+              {isInCart && cartQuantity > 0
+                ? `Add More (${cartQuantity} in cart)`
+                : inStock
+                ? "Add to Cart"
+                : "Out of Stock"}
+            </Button>
+          </CardFooter>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
 
-              <Button
-                onClick={handleAddToCart}
-                className="bg-(--accent) hover:bg-(--accent-dark)"
-                disabled={!inStock}>
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                {inStock ? "Add to Cart" : "Out of Stock"}
-              </Button>
-            </div>
+// Skeleton Loader with Animation
+export function ProductCardSkeleton({
+  variant = "default",
+}: {
+  variant?: "default" | "compact";
+}) {
+  if (variant === "compact") {
+    return (
+      <Card className="overflow-hidden animate-pulse">
+        <div className="flex">
+          <div className="w-24 h-24 bg-gray-200" />
+          <div className="flex-1 p-3 space-y-2">
+            <div className="h-4 bg-gray-200 rounded w-3/4" />
+            <div className="h-3 bg-gray-200 rounded w-1/2" />
+            <div className="h-8 bg-gray-200 rounded" />
           </div>
         </div>
       </Card>
@@ -197,138 +445,29 @@ export function ProductCard({
   }
 
   return (
-    <Card
-      className={`shadow-none border-none overflow-hidden bg-white hover:shadow-md transition-all ${className}`}>
-      <div className="relative h-44 w-full overflow-hidden">
-        <Image
-          src={image}
-          alt={name}
-          fill
-          className="object-cover rounded-b-none"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 256px"
-        />
-
-        {discount > 0 && (
-          <Badge className="absolute top-2 left-2 bg-red-500 text-white">
-            -{discount}%
-          </Badge>
-        )}
-
-        <Badge
-          variant="secondary"
-          className="absolute top-2 right-2 bg-white/95 text-gray-700 shadow-sm">
-          {category}
-        </Badge>
-
-        {!inStock && (
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-            <Badge className="bg-gray-900 text-white px-3 py-1">
-              Out of Stock
-            </Badge>
-          </div>
-        )}
-      </div>
-
-      <div className="p-3 space-y-2">
-        <h3 className="font-medium text-base line-clamp-1">{name}</h3>
-
-        {rating > 0 && (
-          <div className="flex items-center">
-            <div className="flex">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className={`h-4 w-4 ${
-                    i < Math.floor(rating)
-                      ? "text-yellow-400 fill-yellow-400"
-                      : "text-gray-300"
-                  }`}
-                />
-              ))}
-            </div>
-            <span className="ml-2 text-xs text-gray-500">
-              {rating.toFixed(1)}
-            </span>
-          </div>
-        )}
-
-        <div>
-          <div className="flex items-baseline">
-            <span className="text-xl font-semibold">₹{price.toFixed(2)}</span>
-            <span className="text-gray-500 text-xs ml-1">/{unit}</span>
-          </div>
-
-          <div className="h-4 flex items-center">
-            {originalPrice && (
-              <span className="text-xs text-gray-400 line-through">
-                ₹{originalPrice.toFixed(2)}
-              </span>
-            )}
-          </div>
-        </div>
-
-        <Button
-          onClick={handleAddToCart}
-          size="sm"
-          className="w-full bg-(--accent) hover:bg-(--accent-dark) cursor-pointer"
-          disabled={!inStock}>
-          <ShoppingCart className="h-4 w-4 mr-1" />
-          Add
-        </Button>
-      </div>
-    </Card>
-  );
-}
-
-// Skeleton Loader
-export function ProductCardSkeleton() {
-  return (
     <Card className="overflow-hidden animate-pulse">
       <div className="h-48 bg-gray-200" />
-      <CardHeader className="pb-2">
-        <div className="h-5 bg-gray-200 rounded mb-2" />
-        <div className="h-4 bg-gray-200 rounded w-24" />
-      </CardHeader>
-      <CardFooter className="flex justify-between">
-        <div className="h-6 bg-gray-200 rounded w-16" />
-        <div className="h-8 bg-gray-200 rounded w-12" />
-      </CardFooter>
+      <div className="p-4 space-y-3">
+        <div className="h-5 bg-gray-200 rounded" />
+        <div className="h-4 bg-gray-200 rounded w-1/4" />
+        <div className="h-8 bg-gray-200 rounded" />
+      </div>
     </Card>
   );
 }
 
-// Grid Layout Container
-interface ProductGridProps {
-  children: React.ReactNode;
-  cols?: 1 | 2 | 3 | 4 | 5 | 6;
-  gap?: "sm" | "md" | "lg";
-  className?: string;
-}
-
-export function ProductGrid({
-  children,
-  cols = 4,
-  gap = "md",
-  className = "",
-}: ProductGridProps) {
-  const gridCols = {
-    1: "grid-cols-1",
-    2: "grid-cols-1 sm:grid-cols-2",
-    3: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
-    4: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
-    5: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5",
-    6: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6",
-  };
-
-  const gridGap = {
-    sm: "gap-3",
-    md: "gap-6",
-    lg: "gap-8",
-  };
-
+// Error State
+export function ProductCardError({
+  message = "Failed to load product",
+}: {
+  message?: string;
+}) {
   return (
-    <div className={`grid ${gridCols[cols]} ${gridGap[gap]} ${className}`}>
-      {children}
-    </div>
+    <Card className="border-dashed border-2 border-gray-300 bg-gray-50">
+      <div className="p-6 text-center">
+        <div className="text-gray-400 mb-2">⚠️</div>
+        <p className="text-sm text-gray-500">{message}</p>
+      </div>
+    </Card>
   );
 }

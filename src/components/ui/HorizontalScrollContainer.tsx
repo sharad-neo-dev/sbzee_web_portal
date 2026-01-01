@@ -59,7 +59,7 @@ export function HorizontalScrollContainer({
             )}
           </div>
 
-          {showViewAll && (
+          {/* {showViewAll && (
             <Button
               variant="ghost"
               onClick={onViewAllClick}
@@ -67,12 +67,12 @@ export function HorizontalScrollContainer({
               {viewAllText}
               <ChevronRight className="ml-2 h-4 w-4" />
             </Button>
-          )}
+          )} */}
         </div>
       )}
 
       <div className="relative">
-        {showNavigation && (
+        {/* {showNavigation && (
           <Button
             variant="outline"
             size="icon"
@@ -81,7 +81,7 @@ export function HorizontalScrollContainer({
             aria-label="Scroll left">
             <ChevronLeft className="h-5 w-5" />
           </Button>
-        )}
+        )} */}
 
         <div
           ref={scrollContainerRef}
@@ -90,7 +90,7 @@ export function HorizontalScrollContainer({
           {children}
         </div>
 
-        {showNavigation && (
+        {/* {showNavigation && (
           <Button
             variant="outline"
             size="icon"
@@ -99,7 +99,7 @@ export function HorizontalScrollContainer({
             aria-label="Scroll right">
             <ChevronRight className="h-5 w-5" />
           </Button>
-        )}
+        )} */}
       </div>
     </section>
   );

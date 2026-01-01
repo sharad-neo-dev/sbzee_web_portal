@@ -42,9 +42,7 @@ export interface ProductPrice {
   isInCart: boolean;
   cartQuantity: number;
 }
-
-// Product Types
-export interface Product {
+export interface ApiProduct {
   id: string;
   uniqueId: string;
   name: string;
@@ -57,7 +55,9 @@ export interface Product {
     name: string;
     description?: string;
   };
-  prices: ProductPrice[];
+  // Handle both price and prices from different APIs
+  price?: ProductPrice[];
+  prices?: ProductPrice[];
   tags: string[];
   isFeatured: boolean;
   isInCartForAnyPrice: boolean;
@@ -68,16 +68,21 @@ export interface Product {
   companyName?: string;
 }
 
+// Product Types
+export interface Product extends ApiProduct {
+  prices: ProductPrice[]; // Make prices required in normalized Product
+}
+
 // Product List Response
 export interface ProductListResponse {
-  products?: Product[];
-  product?: Product[];
+  products?: ApiProduct[]; // Use ApiProduct
+  product?: ApiProduct[]; // Use ApiProduct
   meta: PaginationMeta;
 }
 
 // Featured Products Response
 export interface FeaturedProductsResponse {
-  products: Product[];
+  products: ApiProduct[]; // Use ApiProduct
   meta: PaginationMeta;
 }
 
@@ -111,7 +116,7 @@ export interface RelatedProductsResponse {
 
 // Favorites Response
 export interface FavoritesResponse {
-  products: Product[];
+  products: ApiProduct[]; // Use ApiProduct instead of Product
   meta: PaginationMeta;
 }
 
@@ -151,27 +156,28 @@ export interface UIProduct {
   priceOptions?: ProductPrice[];
 }
 
-export const convertToUIProduct = (product: Product): UIProduct => {
-  const bestPrice = product.prices.length > 0 ? product.prices[0] : null;
+export const convertToUIProduct = (apiProduct: ApiProduct): UIProduct => {
+  const priceArray = apiProduct.price || apiProduct.prices || [];
+  const bestPrice = priceArray.length > 0 ? priceArray[0] : null;
 
   return {
-    id: product.id,
-    name: product.name,
-    hindiName: product.hindiName,
+    id: apiProduct.id,
+    name: apiProduct.name,
+    hindiName: apiProduct.hindiName,
     price: bestPrice?.price || 0,
     originalPrice: bestPrice?.originalPrice || 0,
     unit: bestPrice?.unitTypeDescription || "",
     unitType: bestPrice?.unitType || "weight",
-    category: product.category.name,
-    categoryId: product.category.id,
-    image: product.thumbnail,
-    images: product.images,
-    description: product.description,
-    tags: product.tags,
-    isFavourite: product.isFavourite,
-    isInCart: product.isInCartForAnyPrice,
-    cartQuantity: product.prices.reduce(
-      (total, p) => total + p.cartQuantity,
+    category: apiProduct.category.name,
+    categoryId: apiProduct.category.id,
+    image: apiProduct.thumbnail,
+    images: apiProduct.images,
+    description: apiProduct.description,
+    tags: apiProduct.tags,
+    isFavourite: apiProduct.isFavourite,
+    isInCart: apiProduct.isInCartForAnyPrice,
+    cartQuantity: priceArray.reduce(
+      (total, p) => total + (p.cartQuantity || 0),
       0
     ),
     discount: bestPrice
@@ -182,6 +188,6 @@ export const convertToUIProduct = (product: Product): UIProduct => {
         )
       : 0,
     inStock: true,
-    priceOptions: product.prices,
+    priceOptions: priceArray,
   };
 };

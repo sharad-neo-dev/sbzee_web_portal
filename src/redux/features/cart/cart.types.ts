@@ -1,13 +1,37 @@
-export interface CartItem {
+import { UIProductForCart } from "@/types/cart.types";
+
+export interface AddToCartPayload {
   id: string;
   name: string;
-  price: number; // per unit
-  qty: number;
-  image?: string;
+  price: number;
+  quantity: number;
+  image: string;
+  unit: string;
+  category: string;
+  priceId?: string;
+  unitType?: string;
+}
+
+export interface UpdateCartItemQuantityPayload {
+  productId: string;
+  quantity: number;
+  priceId?: string;
+}
+
+export interface RemoveFromCartPayload {
+  productId: string;
+  priceId?: string;
 }
 
 export interface CartState {
-  items: CartItem[];
-  totalQty: number;
-  totalPrice: number; // sum of price * qty
+  items: UIProductForCart[];
+  loading: boolean;
+  error: string | null;
+  cartData: any | null;
+  lastUpdated: number | null;
+}
+
+export interface SyncCartPayload {
+  items: UIProductForCart[];
+  cartData: any;
 }

@@ -1,18 +1,17 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion, Variants } from "framer-motion";
-import { Star, ShoppingCart, Heart } from "lucide-react";
+import { Star, ShoppingCart, Heart, Plus, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useAppDispatch } from "@/redux/hooks";
-import { addToCart } from "@/redux/features/cart/cartSlice";
 import type { UIProduct } from "@/types/products.types";
 import { useToggleFavoriteMutation } from "@/redux/services/productsApi";
 import { ProductImage } from "./ProductImage";
 import { useRouter } from "next/navigation";
+import { useCart } from "@/hooks/useCart";
 
 interface ProductCardProps {
   product: UIProduct;
@@ -56,9 +55,13 @@ export function ProductCard({
   showFavorite = true,
   showHindiName = true,
 }: ProductCardProps) {
-  const dispatch = useAppDispatch();
   const router = useRouter();
-  const [toggleFavorite] = useToggleFavoriteMutation();
+  const [toggleFavorite, { isLoading: isTogglingFavorite }] =
+    useToggleFavoriteMutation();
+
+  const { items, addToCart, updateCartItemQuantity, removeFromCart } =
+    useCart();
+  const [selectedPriceIndex, setSelectedPriceIndex] = useState(0);
 
   const {
     id,
@@ -71,35 +74,121 @@ export function ProductCard({
     image,
     discount = 0,
     isFavourite,
-    isInCart,
-    cartQuantity,
     description,
     inStock = true,
-    priceOptions,
+    priceOptions = [],
   } = product;
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  // Prepare price options - if none, create a default one
+  const availablePrices =
+    priceOptions.length > 0
+      ? priceOptions
+      : [
+          {
+            id: `${id}-default`,
+            price: price,
+            originalPrice: originalPrice || price,
+            unitType: "piece",
+            unitTypeDescription: unit || "per piece",
+          },
+        ];
+
+  const selectedPrice = availablePrices[selectedPriceIndex];
+  const currentPrice = selectedPrice?.price || price;
+  const currentUnit =
+    selectedPrice?.unitTypeDescription?.replace("per ", "") || unit;
+  const currentOriginalPrice =
+    selectedPrice?.originalPrice || originalPrice || price;
+
+  // Calculate discount for selected price
+  const calculateDiscount = () => {
+    if (currentOriginalPrice > currentPrice && currentOriginalPrice > 0) {
+      return Math.round(
+        ((currentOriginalPrice - currentPrice) / currentOriginalPrice) * 100
+      );
+    }
+    return 0;
+  };
+
+  const actualDiscount = calculateDiscount();
+
+  // Find if this product with selected price is in cart
+  // IMPORTANT: Use both product ID and price ID to uniquely identify cart item
+  const cartItem = items.find(
+    (item) => item.id === id && item.priceId === selectedPrice?.id
+  );
+
+  const cartQuantity = cartItem?.quantity || 0;
+  const isInCart = cartQuantity > 0;
+
+  // Reset selected price index when price options change
+  useEffect(() => {
+    if (selectedPriceIndex >= availablePrices.length) {
+      setSelectedPriceIndex(0);
+    }
+  }, [availablePrices.length, selectedPriceIndex]);
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
 
-    // Add to Redux cart - using the first price option by default
-    const selectedPrice =
-      priceOptions && priceOptions.length > 0 ? priceOptions[0] : null;
-
-    dispatch(
-      addToCart({
-        id,
-        name,
-        price,
-        quantity: 1,
-        image,
-        unit,
-        category,
-        priceId: selectedPrice?.id,
-        unitType: selectedPrice?.unitType,
-      })
-    );
+    // Using the new cart hook with selected price
+    await addToCart({
+      id,
+      name,
+      price: currentPrice,
+      quantity: 1,
+      image,
+      unit: currentUnit,
+      category,
+      priceId: selectedPrice?.id, // Use selected price ID
+      unitType: selectedPrice?.unitType,
+    });
 
     // Call custom handler if provided
+    if (onAddToCart) {
+      onAddToCart(product);
+    }
+  };
+
+  const handleIncreaseQuantity = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    if (!cartItem) {
+      // If not in cart, add it first
+      await handleAddToCart(e);
+      return;
+    }
+
+    await updateCartItemQuantity({
+      productId: id,
+      quantity: cartQuantity + 1,
+      priceId: selectedPrice?.id, // Use selected price ID
+    });
+
+    if (onAddToCart) {
+      onAddToCart(product);
+    }
+  };
+
+  const handleDecreaseQuantity = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    if (!cartItem) return;
+
+    if (cartQuantity === 1) {
+      // Remove from cart if quantity becomes 0
+      await removeFromCart({
+        productId: id,
+        priceId: selectedPrice?.id, // Use selected price ID
+      });
+    } else {
+      await updateCartItemQuantity({
+        productId: id,
+        quantity: cartQuantity - 1,
+        priceId: selectedPrice?.id, // Use selected price ID
+      });
+    }
+
     if (onAddToCart) {
       onAddToCart(product);
     }
@@ -114,17 +203,17 @@ export function ProductCard({
     }
   };
 
-  const calculateDiscount = () => {
-    if (originalPrice > price && originalPrice > 0) {
-      return Math.round(((originalPrice - price) / originalPrice) * 100);
-    }
-    return 0;
+  const handlePriceSelect = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
+    setSelectedPriceIndex(index);
   };
 
-  const actualDiscount = calculateDiscount();
   const handleCardClick = () => {
     router.push(`/product/${id}`);
   };
+
+  // Fixed height for price options container to prevent layout shift
+  const priceOptionsHeight = "h-8"; // Fixed height for 1 row of price options
 
   if (variant === "compact") {
     return (
@@ -145,7 +234,7 @@ export function ProductCard({
                 alt={name}
                 fill
                 className="object-cover group-hover:scale-105 transition-transform duration-300"
-                isPreSigned={true} // Add this prop
+                isPreSigned={true}
               />
               {actualDiscount > 0 && (
                 <Badge className="absolute top-1 left-1 bg-red-500 hover:bg-red-600 text-xs">
@@ -161,23 +250,51 @@ export function ProductCard({
                   <p className="text-xs text-gray-500 mt-0.5">{hindiName}</p>
                 )}
                 <div className="flex items-center mt-1">
-                  <span className="text-lg font-bold">₹{price.toFixed(2)}</span>
-                  {originalPrice > price && (
+                  <span className="text-lg font-bold">
+                    ₹{currentPrice.toFixed(2)}
+                  </span>
+                  {currentOriginalPrice > currentPrice && (
                     <span className="text-xs text-gray-500 line-through ml-1">
-                      ₹{originalPrice.toFixed(2)}
+                      ₹{currentOriginalPrice.toFixed(2)}
                     </span>
                   )}
-                  <span className="text-xs text-gray-500 ml-1">/{unit}</span>
+                  <span className="text-xs text-gray-500 ml-1">
+                    /{currentUnit}
+                  </span>
                 </div>
               </div>
 
-              <Button
-                size="sm"
-                onClick={handleAddToCart}
-                className="w-full bg-green-600 hover:bg-green-700 text-white">
-                <ShoppingCart className="h-3 w-3 mr-1" />
-                {cartQuantity > 0 ? `${cartQuantity} in cart` : "Add"}
-              </Button>
+              {/* Quantity Controls for Compact Variant */}
+              {isInCart ? (
+                <div className="flex items-center justify-between bg-green-600 rounded-md overflow-hidden h-8">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleDecreaseQuantity}
+                    className="h-8 w-8 min-w-8 rounded-none bg-green-700 hover:bg-green-800 text-white">
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <span className="text-white font-medium text-sm px-2">
+                    {cartQuantity}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleIncreaseQuantity}
+                    className="h-8 w-8 min-w-8 rounded-none bg-green-700 hover:bg-green-800 text-white">
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={handleAddToCart}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white h-8"
+                  disabled={!inStock}>
+                  <ShoppingCart className="h-3 w-3 mr-1" />
+                  {inStock ? "Add" : "Out of Stock"}
+                </Button>
+              )}
             </div>
           </div>
         </Card>
@@ -220,8 +337,11 @@ export function ProductCard({
                   {showHindiName && hindiName && (
                     <p className="text-sm text-gray-500 mt-0.5">{hindiName}</p>
                   )}
-                  <Badge variant="outline" className="mt-1">
-                    {category}
+                  {/* Fresh Tag */}
+                  <Badge
+                    variant="outline"
+                    className="mt-1 bg-green-100 text-green-800 border-green-200">
+                    Fresh
                   </Badge>
                 </div>
 
@@ -236,7 +356,7 @@ export function ProductCard({
                         "h-4 w-4",
                         isFavourite
                           ? "fill-red-500 text-red-500"
-                          : "text-gray-400"
+                          : "text-gray-400 hover:text-red-400"
                       )}
                     />
                   </Button>
@@ -245,12 +365,12 @@ export function ProductCard({
 
               <div className="text-right mt-2">
                 <div className="text-2xl font-bold text-gray-900">
-                  ₹{price.toFixed(2)}
+                  ₹{currentPrice.toFixed(2)}
                 </div>
-                <div className="text-sm text-gray-500">/{unit}</div>
-                {originalPrice > price && (
+                <div className="text-sm text-gray-500">/{currentUnit}</div>
+                {currentOriginalPrice > currentPrice && (
                   <div className="text-sm text-gray-400 line-through">
-                    ₹{originalPrice.toFixed(2)}
+                    ₹{currentOriginalPrice.toFixed(2)}
                   </div>
                 )}
               </div>
@@ -261,21 +381,69 @@ export function ProductCard({
                 </p>
               )}
 
+              {/* Price Options for Horizontal Variant - Fixed Height */}
+              <div className={cn("mt-2", priceOptionsHeight)}>
+                {availablePrices.length > 1 && (
+                  <div className="flex flex-wrap gap-1">
+                    {availablePrices.map((priceOption, index) => (
+                      <button
+                        key={priceOption.id}
+                        onClick={(e) => handlePriceSelect(e, index)}
+                        className={cn(
+                          "text-xs px-2 py-1 rounded border transition-colors",
+                          selectedPriceIndex === index
+                            ? "bg-green-100 border-green-500 text-green-700"
+                            : "bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200"
+                        )}>
+                        {priceOption.unitTypeDescription}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="flex items-center justify-between mt-4">
-                {isInCart && cartQuantity > 0 && (
-                  <div className="text-sm text-green-600 flex items-center">
-                    <ShoppingCart className="h-3 w-3 mr-1" />
-                    {cartQuantity} in cart
+                {/* Quantity Controls for Horizontal Variant */}
+                {isInCart ? (
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm text-green-600 font-medium">
+                      {cartQuantity} in cart
+                    </div>
+                    <div className="flex items-center border border-green-600 rounded-md overflow-hidden">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleDecreaseQuantity}
+                        className="h-8 w-8 rounded-none text-green-600 hover:bg-green-50">
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="px-2 font-medium min-w-8 text-center">
+                        {cartQuantity}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleIncreaseQuantity}
+                        className="h-8 w-8 rounded-none text-green-600 hover:bg-green-50">
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500">
+                    {inStock ? "Add to your cart" : "Out of Stock"}
                   </div>
                 )}
 
-                <Button
-                  onClick={handleAddToCart}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                  disabled={!inStock}>
-                  <ShoppingCart className="h-4 w-4 mr-2" />
-                  {inStock ? "Add to Cart" : "Out of Stock"}
-                </Button>
+                {!isInCart && (
+                  <Button
+                    onClick={handleAddToCart}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    disabled={!inStock}>
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    {inStock ? "Add to Cart" : "Out of Stock"}
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -313,18 +481,18 @@ export function ProductCard({
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="absolute top-2 left-2">
+              className="absolute top-2 left-2 z-10">
               <Badge className="bg-red-500 text-white shadow-lg">
                 -{actualDiscount}%
               </Badge>
             </motion.div>
           )}
 
-          {/* Category Badge */}
+          {/* Fresh Tag */}
           <Badge
             variant="secondary"
-            className="absolute top-2 right-2 bg-white/95 text-gray-700 shadow-sm backdrop-blur-sm">
-            {category}
+            className="absolute top-2 right-2 bg-green-600 text-white shadow-sm backdrop-blur-sm z-10">
+            Fresh
           </Badge>
 
           {/* Favorite Button */}
@@ -333,7 +501,7 @@ export function ProductCard({
               variant="ghost"
               size="icon"
               onClick={handleToggleFavorite}
-              className="absolute bottom-2 right-2 bg-white/90 hover:bg-white backdrop-blur-sm h-8 w-8 rounded-full shadow-sm">
+              className="absolute bottom-2 right-2 bg-white/90 hover:bg-white backdrop-blur-sm h-8 w-8 rounded-full shadow-sm z-10">
               <Heart
                 className={cn(
                   "h-4 w-4 transition-all",
@@ -347,7 +515,7 @@ export function ProductCard({
 
           {/* Out of Stock Overlay */}
           {!inStock && (
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
               <Badge className="bg-gray-900 text-white px-3 py-1">
                 Out of Stock
               </Badge>
@@ -370,21 +538,44 @@ export function ProductCard({
             <div className="mt-3">
               <div className="flex items-baseline">
                 <span className="text-xl font-bold text-gray-900">
-                  ₹{price.toFixed(2)}
+                  ₹{currentPrice.toFixed(2)}
                 </span>
-                <span className="text-gray-500 text-sm ml-1">/{unit}</span>
+                <span className="text-gray-500 text-sm ml-1">
+                  /{currentUnit}
+                </span>
               </div>
 
-              {originalPrice > price && (
+              {currentOriginalPrice > currentPrice && (
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-sm text-gray-400 line-through">
-                    ₹{originalPrice.toFixed(2)}
+                    ₹{currentOriginalPrice.toFixed(2)}
                   </span>
                   {actualDiscount > 0 && (
                     <span className="text-xs font-medium text-red-500">
                       Save {actualDiscount}%
                     </span>
                   )}
+                </div>
+              )}
+            </div>
+
+            {/* Price Options - Fixed Height Container */}
+            <div className={cn("mt-2", priceOptionsHeight)}>
+              {availablePrices.length > 1 && (
+                <div className="flex flex-wrap gap-1">
+                  {availablePrices.map((priceOption, index) => (
+                    <button
+                      key={priceOption.id}
+                      onClick={(e) => handlePriceSelect(e, index)}
+                      className={cn(
+                        "text-xs px-2 py-1 rounded border transition-colors",
+                        selectedPriceIndex === index
+                          ? "bg-green-100 border-green-500 text-green-700"
+                          : "bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200"
+                      )}>
+                      {priceOption.unitTypeDescription}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
@@ -397,25 +588,38 @@ export function ProductCard({
             )}
           </div>
 
-          {/* Add to Cart Button */}
+          {/* Cart Controls - Full Width */}
           <CardFooter className="p-0 mt-4">
-            <Button
-              onClick={handleAddToCart}
-              size="sm"
-              className={cn(
-                "w-full transition-all duration-300",
-                isInCart && cartQuantity > 0
-                  ? "bg-green-700 hover:bg-green-800"
-                  : "bg-green-600 hover:bg-green-700"
-              )}
-              disabled={!inStock}>
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              {isInCart && cartQuantity > 0
-                ? `Add More (${cartQuantity} in cart)`
-                : inStock
-                ? "Add to Cart"
-                : "Out of Stock"}
-            </Button>
+            {isInCart ? (
+              <div className="flex items-center justify-between w-full bg-green-600 rounded-md overflow-hidden">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleDecreaseQuantity}
+                  className="h-10 w-12 rounded-none text-white hover:bg-green-700 hover:text-white">
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <span className="px-3 font-medium text-white text-center flex-1">
+                  {cartQuantity} in cart
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleIncreaseQuantity}
+                  className="h-10 w-12 rounded-none text-white hover:bg-green-700 hover:text-white">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                onClick={handleAddToCart}
+                size="sm"
+                className="w-full bg-green-600 hover:bg-green-700 text-white h-10"
+                disabled={!inStock}>
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                {inStock ? "Add to Cart" : "Out of Stock"}
+              </Button>
+            )}
           </CardFooter>
         </CardContent>
       </Card>

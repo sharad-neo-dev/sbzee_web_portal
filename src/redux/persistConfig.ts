@@ -22,7 +22,7 @@ const storage =
 export const persistConfig = {
   key: "root",
   storage,
-  whitelist: ["auth"],
+  whitelist: ["auth", "cart"],
   version: 1,
   migrate: (state: any) => {
     return Promise.resolve(state);

@@ -58,17 +58,17 @@ export default function CategoriesSection() {
   }, [selectedCategory]);
 
   // Log for debugging
-  useEffect(() => {
-    console.log("Selected Category:", selectedCategory);
-    console.log("Current Page:", currentPage);
-    console.log("Products Data:", productsData);
-    console.log("Products:", products);
-    console.log("Total Products:", totalProducts);
-  }, [selectedCategory, currentPage, productsData, products, totalProducts]);
+  // useEffect(() => {
+  //   console.log("Selected Category:", selectedCategory);
+  //   console.log("Current Page:", currentPage);
+  //   console.log("Products Data:", productsData);
+  //   console.log("Products:", products);
+  //   console.log("Total Products:", totalProducts);
+  // }, [selectedCategory, currentPage, productsData, products, totalProducts]);
 
   // Handle category selection
   const handleCategorySelect = (categoryId: string) => {
-    console.log("Category selected:", categoryId);
+    // console.log("Category selected:", categoryId);
     setSelectedCategory(categoryId);
     // Page will be reset by useEffect
   };

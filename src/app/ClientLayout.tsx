@@ -8,15 +8,19 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { BackToTop } from "@/components/ui/BackToTop";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { FloatingCart } from "@/components/cart/FloatingCart";
+import { CartDrawer } from "@/components/cart/CartDrawer";
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
 
   const { isAuthenticated, isLoading: authLoading } = useAppSelector(
     (state) => state.auth
   );
+  const { items } = useAppSelector((state) => state.cart);
 
   // Check auth and redirect if needed
   useEffect(() => {
@@ -71,12 +75,27 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SmoothScrollProvider>
-      {!shouldHideLayout && <Header />}
-      <main className={!shouldHideLayout ? "pt-18 lg:pt-22" : ""}>
-        {children}
-      </main>
-      {!shouldHideLayout && <Footer />}
-      {!shouldHideLayout && <BackToTop />}
+      <div className="min-h-screen flex flex-col">
+        {!shouldHideLayout && (
+          <Header onCartClick={() => setCartDrawerOpen(true)} />
+        )}
+        <main
+          className={!shouldHideLayout ? "pt-18 lg:pt-22 flex-1" : "flex-1"}>
+          {children}
+        </main>
+        {!shouldHideLayout && <Footer />}
+        {!shouldHideLayout && <BackToTop />}
+
+        {/* Cart Components */}
+        {!shouldHideLayout && items.length > 0 && (
+          <FloatingCart onViewCart={() => setCartDrawerOpen(true)} />
+        )}
+
+        <CartDrawer
+          isOpen={cartDrawerOpen}
+          onClose={() => setCartDrawerOpen(false)}
+        />
+      </div>
     </SmoothScrollProvider>
   );
 }

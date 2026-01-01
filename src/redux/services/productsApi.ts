@@ -10,7 +10,16 @@ import type {
   PaginationParams,
   CategoryProductsParams,
   FeaturedProductsParams,
+  ApiProduct,
 } from "@/types/products.types";
+
+const normalizeProduct = (product: any): ApiProduct => {
+  return {
+    ...product,
+    // Ensure we have a prices array (use price if exists, otherwise prices)
+    prices: product.price || product.prices || [],
+  };
+};
 
 export const productsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -91,6 +100,18 @@ export const productsApi = baseApi.injectEndpoints({
         method: "GET",
         params: { page, limit },
       }),
+      transformResponse: (response: ApiResponse<FavoritesResponse>) => {
+        if (response.data?.products) {
+          return {
+            ...response,
+            data: {
+              ...response.data,
+              products: response.data.products.map(normalizeProduct),
+            },
+          };
+        }
+        return response;
+      },
       providesTags: ["Favorites"],
     }),
 
@@ -100,7 +121,7 @@ export const productsApi = baseApi.injectEndpoints({
       { productId: string }
     >({
       query: ({ productId }) => ({
-        url: `/user/toggle-favorite/${productId}`,
+        url: `/user/favorites/toggle/${productId}`,
         method: "POST",
       }),
       invalidatesTags: (result, error, { productId }) => [
@@ -108,31 +129,6 @@ export const productsApi = baseApi.injectEndpoints({
         { type: "Products", id: productId },
         "FeaturedProducts",
       ],
-      // Optimistic update
-      async onQueryStarted({ productId }, { dispatch, queryFulfilled }) {
-        const patchResult = dispatch(
-          productsApi.util.updateQueryData(
-            "getFavorites",
-            { page: 1, limit: 10 },
-            (draft) => {
-              if (draft?.data?.products) {
-                const product = draft.data.products.find(
-                  (p) => p.id === productId
-                );
-                if (product) {
-                  product.isFavourite = !product.isFavourite;
-                }
-              }
-            }
-          )
-        );
-
-        try {
-          await queryFulfilled;
-        } catch {
-          patchResult.undo();
-        }
-      },
     }),
   }),
 });

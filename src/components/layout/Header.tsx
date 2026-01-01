@@ -7,19 +7,66 @@ import {
   CircleUserRound,
   Search,
   ShoppingCart,
+  Bell,
+  Package,
+  User,
+  Settings,
+  TicketPercent,
+  LogOut,
+  Heart,
 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { logout } from "@/redux/features/auth/authSlice";
+import { RootState } from "@/redux/store";
+// import { useGetSearchProductQuery } from "@/redux/services/productsApi";
+// import { PreSignedImage } from "../ui/PreSignedImage";
+import { useRouter } from "next/navigation";
 
-export function Header() {
+interface HeaderProps {
+  onCartClick?: () => void;
+}
+
+export function Header({ onCartClick }: HeaderProps) {
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+
   const [fade, setFade] = useState(false);
   const dispatch = useAppDispatch();
+  const router = useRouter();
 
-  const { items, totalQty } = useAppSelector((state) => state.cart);
+  const { items } = useAppSelector((state: RootState) => state.cart);
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+
+  const [searchValue, setSearchValue] = useState("");
+  const [debouncedValue, setDebouncedValue] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = setTimeout(() => {
+      setDebouncedValue(searchValue.trim());
+    }, 400);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [searchValue]);
+
+  // const { data: searchData, isFetching } = useGetSearchProductQuery(
+  //   debouncedValue,
+  //   {
+  //     skip: debouncedValue.length < 2,
+  //   }
+  // );
 
   // console.log(items);
 
@@ -45,14 +92,121 @@ export function Header() {
   const handleLogout = () => {
     dispatch(logout());
   };
+  const handleCardClick = (id: string) => {
+    router.push(`/products/${id}`);
+    setSearchValue("");
+    setDebouncedValue("");
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-(--accent) shadow-md">
-      <nav className="container-custom px-4 lg:px-15">
+      {mobileDrawerOpen && (
+        <>
+          <div
+            className={`
+      fixed inset-0 bg-black/40 z-40 md:hidden
+      transition-opacity duration-500
+      ${
+        mobileDrawerOpen
+          ? "opacity-100 pointer-events-auto"
+          : "opacity-0 pointer-events-none"
+      }
+    `}
+            onClick={() => setMobileDrawerOpen(false)}
+          />
+
+          <div
+            className={`
+      fixed inset-y-0 right-0 z-50 w-72 max-w-[80%] bg-white shadow-xl md:hidden
+      transform transition-transform duration-300 ease-out
+      ${mobileDrawerOpen ? "translate-x-0" : "translate-x-full"}
+    `}>
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+              <span className="font-semibold text-gray-800">
+                {isAuthenticated ? `Hi, ${user?.name || "User"}` : "Welcome"}
+              </span>
+              <button
+                onClick={() => setMobileDrawerOpen(false)}
+                className="p-1 rounded-full hover:bg-gray-100">
+                ✕
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              <Link
+                href="/orders"
+                className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-gray-100"
+                onClick={() => setMobileDrawerOpen(false)}>
+                <Package className="w-5 h-5 text-gray-500" />
+                <span>My Orders</span>
+              </Link>
+
+              <Link
+                href="/profile"
+                className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-gray-100"
+                onClick={() => setMobileDrawerOpen(false)}>
+                <User className="w-5 h-5 text-gray-500" />
+                <span>Profile</span>
+              </Link>
+
+              <Link
+                href="/settings"
+                className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-gray-100"
+                onClick={() => setMobileDrawerOpen(false)}>
+                <Settings className="w-5 h-5 text-gray-500" />
+                <span>Settings</span>
+              </Link>
+
+              <Link
+                href="/coupons"
+                className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-gray-100"
+                onClick={() => setMobileDrawerOpen(false)}>
+                <TicketPercent className="w-5 h-5 text-gray-500" />
+                <span>Coupons</span>
+              </Link>
+
+              <button className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-gray-100 w-full text-left">
+                <div className="relative">
+                  <Bell className="w-6 h-6 text-(--accent)" />
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    3
+                  </span>
+                </div>
+                <span>Notifications</span>
+              </button>
+
+              {isAuthenticated ? (
+                <div className="border-t pt-3 mt-3">
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setMobileDrawerOpen(false);
+                    }}
+                    className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-red-50 text-red-600 w-full text-left">
+                    <LogOut className="w-5 h-5" />
+                    <span>Logout</span>
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  href="/login"
+                  className="block mt-4"
+                  onClick={() => setMobileDrawerOpen(false)}>
+                  <Button className="w-full bg-(--accent) text-white hover:bg-(--accent-dark)">
+                    Login
+                  </Button>
+                </Link>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      <nav className="container-custom px-4 lg:px-0">
         <div className="hidden md:flex items-center h-18 lg:h-22 w-full gap-8 lg:gap-10">
           <Link
             href="/"
-            className="flex items-center space-x-2 shrink-0 mr-4 lg:mr-8">
+            className="flex items-center space-x-2 mr-4 lg:mr-8 min-w-[90px]">
             <Image
               src="/assets/img/LogoWhite.png"
               alt="Sbzee Logo"
@@ -62,8 +216,12 @@ export function Header() {
             />
             <span className="sr-only">Sbzee</span>
           </Link>
+          <div className="hidden md:flex lg:hidden items-center text-(--text-white) gap-1 text-sm">
+            <span>Noida</span>
+            <ChevronDown className="w-4 h-4" />
+          </div>
 
-          <div className="flex flex-col text-sm text-(--text-white)">
+          <div className="hidden lg:flex flex-col text-sm text-(--text-white)">
             <span className="font-black text-xl">
               Delivery Tomorrow Morning (5-8am)
             </span>
@@ -73,46 +231,175 @@ export function Header() {
             </div>
           </div>
 
-          <div className="flex items-center border border-white/30 rounded-md overflow-hidden flex-1 max-w-[700px] ml-4 relative bg-(--bg-white)">
+          <div className="flex items-center border border-white/30 rounded-md flex-1 min-w-[220px] max-w-[700px] ml-4 bg-(--bg-white)">
             <div className="pl-2 pr-1">
               <Search className="h-5 w-5 text-gray-400" />
             </div>
-            <input
-              type="text"
-              placeholder={placeholders[placeholderIndex]}
-              className={`py-3 px-2 outline-none border-none w-full text-base bg-(--bg-white) placeholder:transition-opacity placeholder:duration-300 ${
-                fade ? "placeholder:opacity-0" : "placeholder:opacity-100"
-              }`}
-            />
+            <div className="relative w-full">
+              <input
+                type="text"
+                value={searchValue}
+                onChange={(e) => {
+                  setSearchValue(e.target.value);
+                  setShowDropdown(true);
+                }}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+                onFocus={() => searchValue && setShowDropdown(true)}
+                placeholder={placeholders[placeholderIndex]}
+                className={`py-3 px-2 outline-none border-none w-full text-base bg-(--bg-white) placeholder:transition-opacity placeholder:duration-300 ${
+                  fade ? "placeholder:opacity-0" : "placeholder:opacity-100"
+                }`}
+              />
+
+              {/* search Dropdown */}
+              {/* {showDropdown && debouncedValue.length >= 2 && (
+                <div className="absolute top-full left-0 right-0 bg-white border rounded-md shadow-lg mt-1 z-50 max-h-72 overflow-auto">
+                  {isFetching && (
+                    <div className="px-4 py-3 text-sm text-gray-500">
+                      Searching...
+                    </div>
+                  )}
+
+                  {!isFetching && searchData?.data?.length === 0 && (
+                    <div className="px-4 py-3 text-sm text-gray-500">
+                      No products found
+                    </div>
+                  )}
+
+                  {searchData?.data?.map((product) => (
+                    <button
+                      key={product.id}
+                      onClick={() => {
+                        handleCardClick(product.id);
+                        setShowDropdown(false);
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-3">
+                      <div className="relative w-10 h-10 shrink-0">
+                        <PreSignedImage
+                          src={product.thumbnail}
+                          alt={product.name}
+                          fill
+                          className="object-cover rounded"
+                          sizes="40px"
+                        />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{product.name}</p>
+                        <p className="text-xs text-gray-500">
+                          {product.category?.name}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )} */}
+            </div>
           </div>
 
           {isAuthenticated ? (
-            <div className="flex items-center gap-4">
-              <span className="text-white">Hi, {user?.name}</span>
-              <Button
-                onClick={handleLogout}
-                className="bg-white text-(--accent) hover:bg-white/90">
-                Logout
-              </Button>
+            <div className="relative">
+              <button
+                onClick={() => setAccountOpen((prev) => !prev)}
+                aria-haspopup="menu"
+                aria-expanded={accountOpen}
+                aria-label="Account menu"
+                className="flex items-center justify-center bg-(--bg-white) p-2 rounded-lg hover:scale-105 transition cursor-pointer">
+                <CircleUserRound className="w-7 h-7 text-(--accent)" />
+              </button>
+
+              {accountOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 mt-3 w-52 rounded-xl bg-white shadow-lg border z-50">
+                  <ul className="py-2 text-sm text-gray-700">
+                    <li>
+                      <Link
+                        href="/orders"
+                        className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100">
+                        <Package className="w-4 h-4 text-gray-500" />
+                        My Orders
+                      </Link>
+                    </li>
+
+                    <li>
+                      <Link
+                        href="/favorites"
+                        className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100">
+                        <Heart className="w-4 h-4 text-gray-500" />
+                        Favorites
+                      </Link>
+                    </li>
+
+                    <li>
+                      <Link
+                        href="/profile"
+                        className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100">
+                        <User className="w-4 h-4 text-gray-500" />
+                        Profile
+                      </Link>
+                    </li>
+
+                    <li>
+                      <Link
+                        href="/settings"
+                        className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100">
+                        <Settings className="w-4 h-4 text-gray-500" />
+                        Settings
+                      </Link>
+                    </li>
+
+                    <li>
+                      <Link
+                        href="/coupons"
+                        className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100">
+                        <TicketPercent className="w-4 h-4 text-gray-500" />
+                        Coupons
+                      </Link>
+                    </li>
+
+                    <li className="border-t mt-1">
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-3 w-full px-4 py-2 text-left text-red-600 hover:bg-red-50">
+                        <LogOut className="w-4 h-4" />
+                        Logout
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+              )}
             </div>
           ) : (
             <Link href="/login">
-              <Button className="bg-white text-(--accent) hover:bg-white/90 hover:scale-110 cursor-pointer transition-all duration-300 text-xl p-6">
+              <Button className="bg-white text-(--accent) hover:bg-white/90">
                 Login
               </Button>
             </Link>
           )}
 
-          <div className="flex items-center bg-(--bg-white) p-2 sm:p-3 rounded-lg cursor-pointer ml-6 relative">
+          <button
+            onClick={onCartClick}
+            disabled={items.length == 0}
+            className={`flex items-center bg-(--bg-white) p-2 md:p-2 lg:p-3 rounded-lg cursor-pointer ml-4 lg:ml-6 relative group ${
+              items.length == 0 && "bg-gray-200"
+            }`}>
             <ShoppingCart className="w-7 h-7 text-(--accent)" />
-            <span className="ml-1 text-lg font-medium text-(--accent)">
+            <span className="ml-1 font-medium text-(--accent) hidden lg:inline text-sm lg:text-base whitespace-nowrap">
               My Cart
             </span>
-            {totalQty > 0 && (
+            {items.length > 0 && (
               <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
-                {totalQty}
+                {items.length}
               </span>
             )}
+          </button>
+
+          <div className="flex items-center bg-(--bg-white) p-2 sm:p-3 rounded-lg cursor-pointer ml-3 relative">
+            <Bell className="w-7 h-7 text-(--accent)" />
+
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
+              3
+            </span>
           </div>
         </div>
 
@@ -128,7 +415,11 @@ export function Header() {
               </div>
             </div>
 
-            <CircleUserRound size={30} className="text-(--text-white)" />
+            <button
+              onClick={() => setMobileDrawerOpen(true)}
+              className="p-1 rounded-full active:scale-95 transition">
+              <CircleUserRound size={30} className="text-(--text-white)" />
+            </button>
           </div>
 
           <div className="flex items-center border border-white/30 rounded-md overflow-hidden w-full bg-(--bg-white)">

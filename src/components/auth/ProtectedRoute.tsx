@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppSelector } from "@/redux/hooks";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
@@ -18,15 +18,12 @@ export function ProtectedRoute({
 }: ProtectedRouteProps) {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAppSelector((state) => state.auth);
+  const [shouldRedirect, setShouldRedirect] = useState(false);
 
   useEffect(() => {
     if (!isLoading) {
       if (requireAuth && !isAuthenticated) {
-        const currentPath = window.location.pathname + window.location.search;
-        if (currentPath !== "/login") {
-          sessionStorage.setItem("redirectAfterLogin", currentPath);
-        }
-        router.push(redirectTo);
+        setShouldRedirect(true);
       }
 
       if (!requireAuth && isAuthenticated) {
@@ -36,9 +33,19 @@ export function ProtectedRoute({
         router.push(redirectPath);
       }
     }
-  }, [isAuthenticated, isLoading, requireAuth, router, redirectTo]);
+  }, [isAuthenticated, isLoading, requireAuth, router]);
 
-  if (isLoading) {
+  useEffect(() => {
+    if (shouldRedirect) {
+      const currentPath = window.location.pathname + window.location.search;
+      if (currentPath !== redirectTo) {
+        sessionStorage.setItem("redirectAfterLogin", currentPath);
+      }
+      window.location.href = redirectTo;
+    }
+  }, [shouldRedirect, redirectTo]);
+
+  if (isLoading || shouldRedirect) {
     return <LoadingScreen />;
   }
 

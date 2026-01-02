@@ -21,6 +21,7 @@ const normalizeProduct = (product: any): ApiProduct => {
 };
 
 export const productsApi = baseApi.injectEndpoints({
+  overrideExisting: true,
   endpoints: (builder) => ({
     // Get Featured Products
     getFeaturedProducts: builder.query<
@@ -51,13 +52,16 @@ export const productsApi = baseApi.injectEndpoints({
       ApiResponse<ProductListResponse>,
       CategoryProductsParams
     >({
-      query: ({ categoryId, page = 1, limit = 10 }) => ({
-        url: "/product/products-by-category",
-        method: "GET",
-        params: { categoryId, page, limit },
-      }),
+      query: ({ categoryId, page = 1, limit = 10 }) => {
+        const params: any = { limit, page };
+        if (categoryId && categoryId !== "all") {
+          params.categoryId = categoryId;
+        }
+        return { url: "/product/products-by-category", method: "GET", params };
+      },
       providesTags: (result, error, { categoryId }) => [
-        { type: "Products", id: categoryId },
+        { type: "Products", id: categoryId || "all" },
+        { type: "Products", id: "CATEGORY" },
       ],
     }),
 
@@ -125,7 +129,29 @@ export const productsApi = baseApi.injectEndpoints({
         "Favorites",
         { type: "Products", id: productId },
         "FeaturedProducts",
+        { type: "Products", id: "CATEGORY" },
       ],
+    }),
+
+    // Search Products
+    getSearchProduct: builder.query<ApiResponse<ApiProduct[]>, string>({
+      query: (searchTerm) => ({
+        url: `/user/search/product/${encodeURIComponent(searchTerm)}`,
+        method: "GET",
+      }),
+      transformResponse: (response: ApiResponse<ApiProduct[]>) => {
+        if (response.data) {
+          return {
+            ...response,
+            data: response.data.map(normalizeProduct),
+          };
+        }
+        return response;
+      },
+      providesTags: (result, error, searchTerm) => [
+        { type: "Products", id: `search-${searchTerm}` },
+      ],
+      keepUnusedDataFor: 60,
     }),
   }),
 });
@@ -138,4 +164,5 @@ export const {
   useGetRelatedProductsQuery,
   useGetFavoritesQuery,
   useToggleFavoriteMutation,
+  useGetSearchProductQuery,
 } = productsApi;

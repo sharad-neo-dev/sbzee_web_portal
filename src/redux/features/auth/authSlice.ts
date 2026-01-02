@@ -83,6 +83,24 @@ const authSlice = createSlice({
         state.refreshToken = action.payload.refreshToken;
       }
     },
+    updateUser: (state, action: PayloadAction<User>) => {
+      state.user = action.payload;
+
+      // Also update localStorage
+      if (typeof window !== "undefined") {
+        const authData = localStorage.getItem("auth");
+        if (authData) {
+          const current = JSON.parse(authData);
+          localStorage.setItem(
+            "auth",
+            JSON.stringify({
+              ...current,
+              user: action.payload,
+            })
+          );
+        }
+      }
+    },
 
     logout: (state) => {
       state.user = null;
@@ -93,6 +111,12 @@ const authSlice = createSlice({
       state.error = null;
       state.otpSentTo = undefined;
       state.userId = undefined;
+
+      // Clear localStorage
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("auth");
+        sessionStorage.removeItem("redirectAfterLogin");
+      }
     },
 
     clearError: (state) => {
@@ -109,6 +133,7 @@ export const {
   verifyOtpSuccess,
   verifyOtpFailure,
   setCredentials,
+  updateUser,
   logout,
   updateToken,
   clearError,

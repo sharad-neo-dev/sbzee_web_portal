@@ -63,6 +63,6 @@ export interface LoginRequest {
 
 export interface VerifyOtpRequest {
   otp: string;
-  type: "customer_login";
+  ipAddress?: string;
   userId: string;
 }

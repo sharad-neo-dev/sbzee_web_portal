@@ -16,6 +16,8 @@ import {
   Package,
   CheckCircle,
   Leaf,
+  Minus,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,13 +40,14 @@ import type {
 } from "@/types/products.types";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { ProductImage } from "@/components/ui/ProductImage";
+import { useCart } from "@/hooks/useCart";
 
 interface ProductDetailsClientProps {
   productId: string;
   initialProduct?: SingleProductResponse;
 }
 
-// Wrap your component with Suspense
 export default function ProductDetailsClient({
   productId,
 }: {
@@ -70,6 +73,9 @@ function ProductDetailsContent({
   const [isImageLoading, setIsImageLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("description");
 
+  const { items, addToCart, updateCartItemQuantity, removeFromCart } =
+    useCart();
+
   // Fetch product details
   const {
     data: productResponse,
@@ -86,14 +92,11 @@ function ProductDetailsContent({
       skip: !productId,
     });
 
-  // Toggle favorite mutation
   const [toggleFavorite, { isLoading: isTogglingFavorite }] =
     useToggleFavoriteMutation();
 
-  // Use initial product or fetched product
-  const product = initialProduct || productResponse?.data;
+  const product = productResponse?.data?.data;
   const relatedProducts = (relatedResponse?.data as unknown as Product[]) || [];
-
   // Calculate discount for selected price
   const selectedPrice = product?.price?.[selectedPriceIndex];
   const discount =
@@ -145,24 +148,59 @@ function ProductDetailsContent({
       </div>
     );
   }
+  const cartItemId = `${product.id}-${selectedPrice?.id}`;
+
+  // Find the cart item
+  const cartItem = items.find((item: any) => item.id === cartItemId);
+  const cartQuantity = cartItem?.quantity || 0;
+  const isInCart = cartQuantity > 0;
 
   // Handle add to cart
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!selectedPrice) return;
 
-    dispatch(
-      addToCart({
-        id: `${product.id}-${selectedPrice.id}`,
-        name: product.name,
-        price: selectedPrice.price,
-        quantity,
-        image: product.thumbnail,
-        unit: selectedPrice.unitTypeDescription,
-        category: product.category?.name || "Uncategorized",
-        priceId: selectedPrice.id,
-        unitType: selectedPrice.unitType,
-      })
-    );
+    await addToCart({
+      id: cartItemId,
+      productId: product.id,
+      name: product.name,
+      price: selectedPrice.price,
+      quantity,
+      image: product.thumbnail,
+      unit: selectedPrice.unitTypeDescription,
+      category: product.category?.name || "Uncategorized",
+      priceId: selectedPrice.id,
+      unitType: selectedPrice.unitType,
+    });
+  };
+
+  const handleIncreaseQuantity = async () => {
+    if (!cartItem) {
+      await handleAddToCart();
+      return;
+    }
+
+    await updateCartItemQuantity({
+      productId: cartItemId,
+      quantity: cartQuantity + 1,
+      priceId: selectedPrice?.id,
+    });
+  };
+
+  const handleDecreaseQuantity = async () => {
+    if (!cartItem) return;
+
+    if (cartQuantity === 1) {
+      await removeFromCart({
+        productId: cartItemId,
+        priceId: selectedPrice?.id,
+      });
+    } else {
+      await updateCartItemQuantity({
+        productId: cartItemId,
+        quantity: cartQuantity - 1,
+        priceId: selectedPrice?.id,
+      });
+    }
   };
 
   // Handle favorite toggle
@@ -233,26 +271,25 @@ function ProductDetailsContent({
         variants={containerVariants}
         className="container mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-          {/* Left Column - Images */}
           <motion.div variants={itemVariants} className="space-y-4">
             {/* Main Image */}
-            <div className="relative h-96 lg:h-[500px] w-full rounded-2xl overflow-hidden bg-linear-to-br from-gray-50 to-gray-100 group">
-              {/* Loading Skeleton */}
+            <div className="relative h-96 lg:h-[500px] w-full rounded-2xl overflow-hidden bg-white group">
               {isImageLoading && (
-                <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/50 to-transparent animate-shimmer" />
+                <div className="absolute inset-0 bg-gray-100 animate-pulse" />
               )}
 
-              {/* Main Image */}
-              <img
+              <ProductImage
                 src={product.images?.[selectedImageIndex] || product.thumbnail}
-                alt={product.name}
+                alt={product.name || "Product Image"}
+                fill
                 className={cn(
                   "w-full h-full object-contain transition-all duration-500",
                   isImageLoading ? "opacity-0" : "opacity-100"
                 )}
                 onLoad={() => setIsImageLoading(false)}
                 onError={() => setIsImageLoading(false)}
-                loading="eager"
+                isPreSigned={true}
+                priority={true}
               />
 
               {/* Discount Badge */}
@@ -299,7 +336,7 @@ function ProductDetailsContent({
                 transition={{ delay: 0.2 }}
                 className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
                 {product.images.map((image, index) => (
-                  <motion.button
+                  <motion.div
                     key={index}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -313,11 +350,13 @@ function ProductDetailsContent({
                         ? "border-green-500 ring-2 ring-green-500/30"
                         : "border-gray-200 hover:border-gray-300"
                     )}>
-                    <img
+                    <ProductImage
                       src={image}
                       alt={`${product.name} - View ${index + 1}`}
+                      fill
                       className="w-full h-full object-cover"
-                      loading="lazy"
+                      isPreSigned={true}
+                      priority={index < 3}
                     />
                     {selectedImageIndex === index && (
                       <motion.div
@@ -326,7 +365,7 @@ function ProductDetailsContent({
                         transition={{ type: "spring", stiffness: 300 }}
                       />
                     )}
-                  </motion.button>
+                  </motion.div>
                 ))}
               </motion.div>
             )}
@@ -430,46 +469,56 @@ function ProductDetailsContent({
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <AnimatePresence>
                       {product.price.map(
-                        (price: ProductPrice, index: number) => (
-                          <motion.button
-                            key={price.id}
-                            layout
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => {
-                              setSelectedPriceIndex(index);
-                              setQuantity(1);
-                            }}
-                            className={cn(
-                              "p-3 rounded-xl border-2 transition-all text-left",
-                              selectedPriceIndex === index
-                                ? "border-green-500 bg-green-50 text-green-700 ring-2 ring-green-500/30"
-                                : "border-gray-200 hover:border-gray-300"
-                            )}>
-                            <div className="font-medium">
-                              {price.unitTypeDescription}
-                            </div>
-                            <div className="text-sm mt-1">
-                              <span className="font-semibold">
-                                ₹{price.price.toFixed(2)}
-                              </span>
-                              {price.originalPrice > price.price && (
-                                <span className="text-gray-400 line-through ml-2">
-                                  ₹{price.originalPrice.toFixed(2)}
-                                </span>
-                              )}
-                            </div>
-                            {price.isInCart && price.cartQuantity > 0 && (
-                              <div className="text-xs text-green-600 mt-2 flex items-center">
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                In cart: {price.cartQuantity}
+                        (price: ProductPrice, index: number) => {
+                          const priceCartItemId = `${product.id}-${price.id}`;
+                          const priceCartItem = items.find(
+                            (item: any) => item.id === priceCartItemId
+                          );
+                          const priceCartQuantity =
+                            priceCartItem?.quantity || 0;
+                          return (
+                            <motion.button
+                              key={price.id}
+                              layout
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.9 }}
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => {
+                                setSelectedPriceIndex(index);
+                                setQuantity(
+                                  priceCartQuantity > 0 ? priceCartQuantity : 1
+                                );
+                              }}
+                              className={cn(
+                                "p-3 rounded-xl border-2 transition-all text-left",
+                                selectedPriceIndex === index
+                                  ? "border-green-500 bg-green-50 text-green-700 ring-2 ring-green-500/30"
+                                  : "border-gray-200 hover:border-gray-300"
+                              )}>
+                              <div className="font-medium">
+                                {price.unitTypeDescription}
                               </div>
-                            )}
-                          </motion.button>
-                        )
+                              <div className="text-sm mt-1">
+                                <span className="font-semibold">
+                                  ₹{price.price.toFixed(2)}
+                                </span>
+                                {price.originalPrice > price.price && (
+                                  <span className="text-gray-400 line-through ml-2">
+                                    ₹{price.originalPrice.toFixed(2)}
+                                  </span>
+                                )}
+                              </div>
+                              {priceCartQuantity > 0 && (
+                                <div className="text-xs text-green-600 mt-2 flex items-center">
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  In cart: {price.cartQuantity}
+                                </div>
+                              )}
+                            </motion.button>
+                          );
+                        }
                       )}
                     </AnimatePresence>
                   </div>
@@ -485,50 +534,100 @@ function ProductDetailsContent({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
               className="space-y-4">
-              {/* Quantity Selector */}
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-gray-900">Quantity:</span>
-                <div className="flex items-center space-x-3">
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="h-10 w-10 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-gray-400 transition-colors">
-                    <span className="text-xl">-</span>
-                  </motion.button>
-                  <motion.span
-                    key={quantity}
-                    initial={{ scale: 1.2 }}
-                    animate={{ scale: 1 }}
-                    className="text-xl font-bold w-12 text-center">
-                    {quantity}
-                  </motion.span>
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="h-10 w-10 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-gray-400 transition-colors">
-                    <span className="text-xl">+</span>
-                  </motion.button>
+              {isInCart ? (
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-gray-900">Quantity:</span>
+                  <div className="flex items-center space-x-3">
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      className="h-10 w-10 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-gray-400 transition-colors">
+                      <span className="text-xl">-</span>
+                    </motion.button>
+                    <motion.span
+                      key={quantity}
+                      initial={{ scale: 1.2 }}
+                      animate={{ scale: 1 }}
+                      className="text-xl font-bold w-12 text-center">
+                      {quantity}
+                    </motion.span>
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => setQuantity(quantity + 1)}
+                      className="h-10 w-10 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-gray-400 transition-colors">
+                      <span className="text-xl">+</span>
+                    </motion.button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-gray-900">In Cart:</span>
+                  <div className="flex items-center gap-2">
+                    <div className="text-green-600 font-medium text-sm">
+                      {cartQuantity} items in cart
+                    </div>
+                    <div className="flex items-center border border-green-600 rounded-lg overflow-hidden">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleDecreaseQuantity}
+                        className="h-8 w-8 rounded-none text-green-600 hover:bg-green-50">
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="px-2 font-medium min-w-8 text-center">
+                        {cartQuantity}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleIncreaseQuantity}
+                        className="h-8 w-8 rounded-none text-green-600 hover:bg-green-50">
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Add to Cart & Buy Now */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleAddToCart}
-                  className="bg-linear-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center">
-                  <ShoppingCart className="h-5 w-5 mr-2" />
-                  Add to Cart
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="bg-linear-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all">
-                  Buy Now
-                </motion.button>
+                {!isInCart ? (
+                  <>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleAddToCart}
+                      className="bg-linear-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center">
+                      <ShoppingCart className="h-5 w-5 mr-2" />
+                      Add to Cart
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="bg-linear-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all">
+                      Buy Now
+                    </motion.button>
+                  </>
+                ) : (
+                  <>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleIncreaseQuantity}
+                      className="bg-linear-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center">
+                      <Plus className="h-5 w-5 mr-2" />
+                      Add More
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="bg-linear-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all">
+                      Buy Now
+                    </motion.button>
+                  </>
+                )}
               </div>
             </motion.div>
 

@@ -63,7 +63,7 @@ export function ProductCard({
   const [selectedPriceIndex, setSelectedPriceIndex] = useState(0);
 
   const {
-    id,
+    id: productId,
     name,
     hindiName,
     price,
@@ -78,13 +78,12 @@ export function ProductCard({
     priceOptions = [],
   } = product;
 
-  // Prepare price options
   const availablePrices =
     priceOptions.length > 0
       ? priceOptions
       : [
           {
-            id: `${id}-default`,
+            id: `${productId}-default`,
             price: price,
             originalPrice: originalPrice || price,
             unitType: "piece",
@@ -111,9 +110,9 @@ export function ProductCard({
 
   const actualDiscount = calculateDiscount();
 
-  const cartItem = items.find(
-    (item) => item.id === id && item.priceId === selectedPrice?.id
-  );
+  const cartItemId = `${productId}-${selectedPrice?.id}`;
+
+  const cartItem = items.find((item: any) => item.id === cartItemId);
 
   const cartQuantity = cartItem?.quantity || 0;
   const isInCart = cartQuantity > 0;
@@ -128,7 +127,8 @@ export function ProductCard({
     e.stopPropagation();
 
     await addToCart({
-      id,
+      id: cartItemId,
+      productId: productId,
       name,
       price: currentPrice,
       quantity: 1,
@@ -153,7 +153,7 @@ export function ProductCard({
     }
 
     await updateCartItemQuantity({
-      productId: id,
+      productId: cartItemId,
       quantity: cartQuantity + 1,
       priceId: selectedPrice?.id,
     });
@@ -170,12 +170,12 @@ export function ProductCard({
 
     if (cartQuantity === 1) {
       await removeFromCart({
-        productId: id,
+        productId: cartItemId,
         priceId: selectedPrice?.id,
       });
     } else {
       await updateCartItemQuantity({
-        productId: id,
+        productId: cartItemId,
         quantity: cartQuantity - 1,
         priceId: selectedPrice?.id,
       });
@@ -189,7 +189,7 @@ export function ProductCard({
   const handleToggleFavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await toggleFavorite({ productId: id }).unwrap();
+      await toggleFavorite({ productId: productId }).unwrap();
     } catch (error) {
       console.error("Failed to toggle favorite:", error);
     }
@@ -201,7 +201,7 @@ export function ProductCard({
   };
 
   const handleCardClick = () => {
-    router.push(`/product/${id}`);
+    router.push(`/product/${productId}`);
   };
 
   const priceOptionsHeight = "h-8";
@@ -224,7 +224,7 @@ export function ProductCard({
                 src={image}
                 alt={name}
                 fill
-                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                className="object-contain p-1 group-hover:scale-105 transition-transform duration-300"
                 isPreSigned={true}
               />
               {actualDiscount > 0 && (
@@ -311,7 +311,7 @@ export function ProductCard({
                 src={image}
                 alt={name}
                 fill
-                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
                 isPreSigned={true}
               />
               {actualDiscount > 0 && (
@@ -457,12 +457,12 @@ export function ProductCard({
         )}
         onClick={handleCardClick}>
         {/* Image Container */}
-        <div className="relative h-48 w-full overflow-hidden bg-gray-100">
+        <div className="relative h-48 w-full overflow-hidden flex items-center justify-center">
           <ProductImage
             src={image}
             alt={name}
             fill
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            className="object-contain group-hover:scale-105 transition-transform duration-500"
             isPreSigned={true}
             priority={variant === "detailed"}
           />
@@ -492,10 +492,10 @@ export function ProductCard({
               variant="ghost"
               size="icon"
               onClick={handleToggleFavorite}
-              className="absolute bottom-2 right-2 bg-white/90 hover:bg-white backdrop-blur-sm h-8 w-8 rounded-full shadow-sm z-10">
+              className="absolute top-2 left-2 bg-white/90 hover:bg-white backdrop-blur-sm h-8 w-8 rounded-full shadow-sm z-10">
               <Heart
                 className={cn(
-                  "h-4 w-4 transition-all",
+                  "h-5 w-5 transition-all",
                   isFavourite
                     ? "fill-red-500 text-red-500 scale-110"
                     : "text-gray-500 hover:text-red-400"
@@ -534,18 +534,20 @@ export function ProductCard({
                 </span>
               </div>
 
-              {currentOriginalPrice > currentPrice && (
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-sm text-gray-400 line-through">
-                    ₹{currentOriginalPrice.toFixed(2)}
-                  </span>
-                  {actualDiscount > 0 && (
-                    <span className="text-xs font-medium text-red-500">
-                      Save {actualDiscount}%
+              <div className="flex items-center gap-2 mt-1 min-h-5">
+                {currentOriginalPrice > currentPrice && (
+                  <>
+                    <span className="text-sm text-gray-400 line-through">
+                      ₹{currentOriginalPrice.toFixed(2)}
                     </span>
-                  )}
-                </div>
-              )}
+                    {actualDiscount > 0 && (
+                      <span className="text-xs font-medium text-red-500">
+                        Save {actualDiscount}%
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Price Options */}

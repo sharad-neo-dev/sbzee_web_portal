@@ -22,6 +22,7 @@ import {
 import { convertToUIProduct } from "@/types/products.types";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { ProductImage } from "@/components/ui/ProductImage";
 
 export default function FavoritesContent() {
   const router = useRouter();
@@ -403,10 +404,12 @@ export default function FavoritesContent() {
                     layout
                     className="bg-white rounded-xl shadow-sm border p-4 hover:shadow-md transition-shadow">
                     <div className="flex items-start gap-4">
-                      <img
+                      <ProductImage
                         src={product.thumbnail}
                         alt={product.name}
+                        fill
                         className="w-24 h-24 object-cover rounded-lg"
+                        isPreSigned={true}
                       />
                       <div className="flex-1">
                         <div className="flex justify-between items-start">

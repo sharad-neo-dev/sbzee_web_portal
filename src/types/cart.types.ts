@@ -77,6 +77,7 @@ export interface RemoveFromCartRequest {
 
 export interface UIProductForCart {
   id: string;
+  productId: string;
   name: string;
   price: number;
   quantity: number;

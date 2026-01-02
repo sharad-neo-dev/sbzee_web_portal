@@ -4,6 +4,7 @@ import FeaturedProducts from "@/components/sections/FeaturedProducts";
 import CategoriesSection from "@/components/sections/CategoriesSection";
 import { HomePageLoader } from "@/components/ui/HomePageLoader";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { ToastContainer } from "@/components/ui/ToastContainer";
 
 export const metadata: Metadata = {
   title: "Fresh Fruits & Vegetables | Sbzee - Farm to Door Delivery",
@@ -28,7 +29,6 @@ export default function HomePage() {
   return (
     <ProtectedRoute>
       <main className="min-h-screen">
-        {/* Hero Section */}
         <section className="bg-linear-to-r from-green-50 to-emerald-100 py-12">
           <div className="container-custom text-center">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4">
@@ -50,7 +50,6 @@ export default function HomePage() {
           <CategoriesSection />
         </Suspense>
 
-        {/* CTA Section */}
         <section className="bg-green-600 text-white py-12">
           <div className="container-custom text-center">
             <h2 className="text-3xl font-bold mb-4">Why Choose Sbzee?</h2>
@@ -60,7 +59,7 @@ export default function HomePage() {
                 <h3 className="text-xl font-semibold mb-2">
                   Next Morning Delivery
                 </h3>
-                <p>Order by 9 PM, get fresh produce by next morning</p>
+                <p>Order by 11 PM, get fresh produce by next morning</p>
               </div>
               <div className="p-6">
                 <div className="text-4xl mb-4">🥬</div>
@@ -78,6 +77,7 @@ export default function HomePage() {
           </div>
         </section>
       </main>
+      <ToastContainer />
     </ProtectedRoute>
   );
 }

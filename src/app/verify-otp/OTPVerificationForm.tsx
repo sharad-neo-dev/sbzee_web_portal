@@ -5,7 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useVerifyOtpMutation } from "@/redux/services/authApi";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { verifyOtpStart, clearError } from "@/redux/features/auth/authSlice";
+import {
+  verifyOtpStart,
+  clearError,
+  verifyOtpFailure,
+} from "@/redux/features/auth/authSlice";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -88,7 +92,6 @@ export default function OTPVerificationForm() {
 
     setOtp(newOtp);
 
-    // Focus on the last filled input
     const lastFilledIndex = Math.min(pastedData.length, 3);
     inputRefs.current[lastFilledIndex]?.focus();
   };
@@ -114,18 +117,17 @@ export default function OTPVerificationForm() {
       dispatch(verifyOtpStart());
       const result = await verifyOtp({
         otp: otpString,
-        type: "customer_login",
+        // ipAddress: "127:273:38",
         userId,
       }).unwrap();
 
       if (result.success) {
         sessionStorage.removeItem("redirectAfterLogin");
-        // Success - redirect to home page
         router.push(redirectUrl);
       }
     } catch (err: any) {
       console.error("OTP verification error:", err);
-      // Error is already handled by RTK Query
+      dispatch(verifyOtpFailure(err));
     }
   };
 
@@ -138,13 +140,13 @@ export default function OTPVerificationForm() {
     setValidationError("");
     dispatch(clearError());
 
-    // Focus on first input
     inputRefs.current[0]?.focus();
 
-    // You can implement resend OTP API call here
     console.log("Resend OTP for phone:", phone);
-    // You would call your resend OTP API here
   };
+  useEffect(() => {
+    inputRefs.current[0]?.focus();
+  }, []);
 
   return (
     <motion.div

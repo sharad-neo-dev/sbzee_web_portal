@@ -19,6 +19,7 @@ import { useCart } from "@/hooks/useCart";
 import { useGetCartQuery } from "@/redux/services/cartApi";
 import { CartProductImage } from "./CartProductImage";
 import { cn } from "@/lib/utils";
+import { ProductImage } from "../ui/ProductImage";
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -40,7 +41,10 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     error,
     refetch,
   } = useGetCartQuery(undefined, {
-    skip: !isOpen,
+    // Poll every 10 seconds when drawer is open
+    pollingInterval: isOpen ? 10000 : 0,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
   });
 
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
@@ -230,12 +234,13 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="flex gap-4 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
-                    <div className="relative w-20 h-20 shrink-0 rounded-md overflow-hidden bg-gray-100">
-                      <CartProductImage
+                    <div className="relative w-20 h-20 shrink-0 rounded-md overflow-hidden ">
+                      <ProductImage
                         src={item.image}
                         alt={item.name}
                         fill
-                        className="object-cover"
+                        className="object-contain"
+                        isPreSigned={true}
                       />
                     </div>
 

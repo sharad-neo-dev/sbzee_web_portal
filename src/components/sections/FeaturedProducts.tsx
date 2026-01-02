@@ -8,7 +8,7 @@ import { ProductCard, ProductCardSkeleton } from "@/components/ui/ProductCard";
 import { HorizontalScrollContainer } from "@/components/ui/HorizontalScrollContainer";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { usePreloadImages } from "@/hooks/usePreloadImages";
+// import { usePreloadImages } from "@/hooks/usePreloadImages";
 
 export default function FeaturedProducts() {
   const router = useRouter();
@@ -20,12 +20,12 @@ export default function FeaturedProducts() {
     error,
   } = useGetFeaturedProductsQuery({ limit: 10, page: 1 });
 
-  const imageUrls = useMemo(() => {
-    if (!featuredData?.data?.products) return [];
-    return featuredData.data.products.map((p) => p.thumbnail);
-  }, [featuredData]);
+  // const imageUrls = useMemo(() => {
+  //   if (!featuredData?.data?.products) return [];
+  //   return featuredData.data.products.map((p) => p.thumbnail);
+  // }, [featuredData]);
 
-  usePreloadImages(imageUrls);
+  // usePreloadImages(imageUrls);
 
   const handleAddToCart = (product: any) => {
     console.log("Added to cart:", product);
@@ -82,7 +82,9 @@ export default function FeaturedProducts() {
         {isLoading ? (
           // Skeleton Loaders
           Array.from({ length: 5 }).map((_, index) => (
-            <div key={index} className="min-w-[280px] md:min-w-[300px]">
+            <div
+              key={index}
+              className="min-w-[280px] md:min-w-[300px] shrink-0">
               <ProductCardSkeleton />
             </div>
           ))
@@ -96,7 +98,7 @@ export default function FeaturedProducts() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="min-w-[280px] md:min-w-[300px] cursor-pointer"
+                className="w-[280px] md:w-[300px] shrink-0 cursor-pointer"
                 onClick={() => handleProductClick(product.id)}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}>
@@ -147,7 +149,7 @@ export default function FeaturedProducts() {
               <div className="text-sm text-gray-500">Popular Favorites</div>
             </div>
             <div className="bg-white p-4 rounded-lg shadow-sm border text-center">
-              <div className="text-2xl font-bold text-green-100">100%</div>
+              <div className="text-2xl font-bold text-green-600">100%</div>
               <div className="text-sm text-gray-500">Fresh Guarantee</div>
             </div>
           </div>

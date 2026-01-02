@@ -16,11 +16,32 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
+  const [shouldRedirect, setShouldRedirect] = useState(false);
 
   const { isAuthenticated, isLoading: authLoading } = useAppSelector(
     (state) => state.auth
   );
   const { items } = useAppSelector((state) => state.cart);
+
+  useEffect(() => {
+    if (cartDrawerOpen) {
+      // Save current scroll position
+      const scrollY = window.scrollY;
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = "100%";
+      document.body.style.overflow = "hidden";
+
+      return () => {
+        // Restore scroll position when drawer closes
+        document.body.style.position = "";
+        document.body.style.top = "";
+        document.body.style.width = "";
+        document.body.style.overflow = "";
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [cartDrawerOpen]);
 
   useEffect(() => {
     const publicPaths = ["/login", "/verify-otp"];
@@ -30,38 +51,40 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
     if (authLoading) return;
 
-    const checkAuth = () => {
-      const authData = localStorage.getItem("auth");
-      const isLoggedIn = !!authData || isAuthenticated;
+    const authData = localStorage.getItem("auth");
+    const isLoggedIn = !!authData || isAuthenticated;
 
-      if (!isLoggedIn && !isPublicPath) {
-        if (pathname !== "/" && !pathname.includes("/login")) {
-          sessionStorage.setItem("redirectAfterLogin", pathname);
-        }
-        router.push("/login");
-        return;
-      }
+    if (!isLoggedIn && !isPublicPath) {
+      setShouldRedirect(true);
+      return;
+    }
 
-      if (isLoggedIn && isPublicPath) {
-        const redirectPath =
-          sessionStorage.getItem("redirectAfterLogin") || "/";
-        sessionStorage.removeItem("redirectAfterLogin");
-        router.push(redirectPath);
-        return;
-      }
+    if (isLoggedIn && isPublicPath) {
+      const redirectPath = sessionStorage.getItem("redirectAfterLogin") || "/";
+      sessionStorage.removeItem("redirectAfterLogin");
+      router.push(redirectPath);
+      return;
+    }
 
-      setIsCheckingAuth(false);
-    };
-
-    checkAuth();
+    setIsCheckingAuth(false);
   }, [pathname, router, isAuthenticated, authLoading]);
+
+  useEffect(() => {
+    if (shouldRedirect) {
+      const currentPath = window.location.pathname + window.location.search;
+      if (currentPath !== "/login") {
+        sessionStorage.setItem("redirectAfterLogin", currentPath);
+      }
+      window.location.href = "/login";
+    }
+  }, [shouldRedirect]);
 
   const hideLayoutRoutes = ["/login", "/verify-otp"];
   const shouldHideLayout = hideLayoutRoutes.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
 
-  if (isCheckingAuth || authLoading) {
+  if (isCheckingAuth || authLoading || shouldRedirect) {
     return <LoadingScreen />;
   }
 

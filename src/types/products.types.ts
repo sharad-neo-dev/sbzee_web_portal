@@ -88,22 +88,26 @@ export interface FeaturedProductsResponse {
 
 // Single Product Response
 export interface SingleProductResponse {
-  category: Category;
-  isInCartForAnyPrice: boolean;
-  id: string;
-  uniqueId: string;
-  name: string;
-  hindiName: string;
-  description: string;
-  thumbnail: string;
-  images: string[];
-  tags: string[];
-  price: ProductPrice[];
-  isFavourite: boolean;
-  fssaiLicenseNumber?: string;
-  additivesInfo?: string;
-  companyAddress?: string;
-  companyName?: string;
+  data: {
+    category: Category;
+    isInCartForAnyPrice: boolean;
+    id: string;
+    uniqueId: string;
+    name: string;
+    hindiName: string;
+    description: string;
+    thumbnail: string;
+    images: string[];
+    tags: string[];
+    price: ProductPrice[];
+    isFavourite: boolean;
+    fssaiLicenseNumber?: string;
+    additivesInfo?: string;
+    companyAddress?: string;
+    companyName?: string;
+  };
+  message: string;
+  success: boolean;
 }
 
 // Related Products Response
@@ -127,7 +131,7 @@ export interface PaginationParams {
 }
 
 export interface CategoryProductsParams extends PaginationParams {
-  categoryId: string;
+  categoryId?: string;
 }
 
 export interface FeaturedProductsParams extends PaginationParams {}

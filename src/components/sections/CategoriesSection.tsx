@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion"; // Remove AnimatePresence
 import {
   useGetCategoriesQuery,
   useGetProductsByCategoryQuery,
@@ -96,7 +96,6 @@ export default function CategoriesSection() {
     return pages;
   };
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -192,187 +191,173 @@ export default function CategoriesSection() {
             )}
           </motion.div>
 
-          {/* Category Info */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`${selectedCategory}-${currentPage}`}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
-              className="mb-8">
-              <div className="text-center">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                  {selectedCategoryData?.name || "All Products"}
-                </h3>
-                <p className="text-gray-600 max-w-3xl mx-auto">
-                  {selectedCategoryData?.description ||
-                    "Browse through all our fresh fruits and vegetables. Quality guaranteed!"}
-                </p>
-                <div className="mt-2 text-sm text-gray-500">
-                  Page {currentPage} of {totalPages} • {totalProducts} products
-                </div>
+          {/* Category Info - Simplified without AnimatePresence */}
+          <motion.div
+            key={`${selectedCategory}-${currentPage}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8">
+            <div className="text-center">
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                {selectedCategoryData?.name || "All Products"}
+              </h3>
+              <p className="text-gray-600 max-w-3xl mx-auto">
+                {selectedCategoryData?.description ||
+                  "Browse through all our fresh fruits and vegetables. Quality guaranteed!"}
+              </p>
+              <div className="mt-2 text-sm text-gray-500">
+                Page {currentPage} of {totalPages} • {totalProducts} products
               </div>
-            </motion.div>
-          </AnimatePresence>
+            </div>
+          </motion.div>
 
-          {/* Products Grid */}
-          <AnimatePresence mode="wait">
+          {/* Products Grid - Simplified */}
+          {isLoadingProducts ? (
             <motion.div
-              key={`${selectedCategory}-${currentPage}-products`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}>
-              {isLoadingProducts ? (
-                <motion.div
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {Array.from({ length: 8 }).map((_, index) => (
-                    <motion.div key={index} variants={itemVariants}>
-                      <ProductCardSkeleton />
-                    </motion.div>
-                  ))}
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {Array.from({ length: 8 }).map((_, index) => (
+                <motion.div key={index} variants={itemVariants}>
+                  <ProductCardSkeleton />
                 </motion.div>
-              ) : isProductsError ? (
-                <div className="text-center py-12">
-                  <div className="text-5xl mb-4">😞</div>
-                  <h3 className="text-xl font-semibold mb-2">
-                    Failed to load products
-                  </h3>
-                  <p className="text-gray-500 mb-4">Please try again later</p>
-                  <Button
-                    onClick={() => refetchProducts()}
-                    className="bg-green-600 hover:bg-green-700">
-                    Retry
-                  </Button>
-                </div>
-              ) : products.length > 0 ? (
-                <>
-                  <motion.div
-                    variants={containerVariants}
-                    initial="hidden"
-                    animate="visible"
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {products.map((product, index) => {
-                      const uiProduct = convertToUIProduct(product);
-                      return (
-                        <motion.div
-                          key={`${product.id}-${index}`}
-                          variants={itemVariants}
-                          whileHover={{ y: -5 }}
-                          transition={{ duration: 0.2 }}>
-                          <ProductCard
-                            product={uiProduct}
-                            variant="default"
-                            showFavorite={true}
-                            showHindiName={true}
-                          />
-                        </motion.div>
-                      );
-                    })}
-                  </motion.div>
-
-                  {totalPages > 1 && (
+              ))}
+            </motion.div>
+          ) : isProductsError ? (
+            <div className="text-center py-12">
+              <div className="text-5xl mb-4">😞</div>
+              <h3 className="text-xl font-semibold mb-2">
+                Failed to load products
+              </h3>
+              <p className="text-gray-500 mb-4">Please try again later</p>
+              <Button
+                onClick={() => refetchProducts()}
+                className="bg-green-600 hover:bg-green-700">
+                Retry
+              </Button>
+            </div>
+          ) : products.length > 0 ? (
+            <>
+              <motion.div
+                key={`${selectedCategory}-${currentPage}-products`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {products.map((product, index) => {
+                  const uiProduct = convertToUIProduct(product);
+                  return (
                     <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.2 }}
-                      className="mt-12 flex flex-col items-center">
-                      <div className="text-gray-600 mb-4 text-sm">
-                        Showing {(currentPage - 1) * itemsPerPage + 1} -{" "}
-                        {Math.min(currentPage * itemsPerPage, totalProducts)} of{" "}
-                        {totalProducts} products
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={handlePrevPage}
-                          disabled={currentPage === 1}
-                          className="h-10 w-10 rounded-full"
-                          aria-label="Previous page">
-                          <ChevronLeft className="h-4 w-4" />
-                        </Button>
-
-                        {getPageNumbers().map((pageNumber) => (
-                          <Button
-                            key={pageNumber}
-                            variant={
-                              currentPage === pageNumber ? "default" : "outline"
-                            }
-                            onClick={() => handlePageClick(pageNumber)}
-                            className={cn(
-                              "h-10 w-10 rounded-full",
-                              currentPage === pageNumber &&
-                                "bg-green-600 hover:bg-green-700"
-                            )}>
-                            {pageNumber}
-                          </Button>
-                        ))}
-
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={handleNextPage}
-                          disabled={currentPage === totalPages}
-                          className="h-10 w-10 rounded-full"
-                          aria-label="Next page">
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
-                      </div>
-
-                      <div className="mt-4 flex items-center space-x-2">
-                        <span className="text-sm text-gray-600">
-                          Go to page:
-                        </span>
-                        <input
-                          type="number"
-                          min="1"
-                          max={totalPages}
-                          value={currentPage}
-                          onChange={(e) => {
-                            const page = parseInt(e.target.value);
-                            if (page >= 1 && page <= totalPages) {
-                              handlePageClick(page);
-                            }
-                          }}
-                          className="w-16 px-2 py-1 border rounded text-center"
-                        />
-                        <span className="text-sm text-gray-500">
-                          of {totalPages}
-                        </span>
-                      </div>
+                      key={`${product.id}-${index}`}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      whileHover={{ y: -5 }}
+                      className="transition-all duration-200">
+                      <ProductCard
+                        product={uiProduct}
+                        variant="default"
+                        showFavorite={true}
+                        showHindiName={true}
+                      />
                     </motion.div>
-                  )}
-                </>
-              ) : (
+                  );
+                })}
+              </motion.div>
+
+              {totalPages > 1 && (
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="text-center py-12">
-                  <div className="text-5xl mb-4">🥬</div>
-                  <h3 className="text-xl font-semibold mb-2">
-                    No products found
-                  </h3>
-                  <p className="text-gray-500 mb-4">
-                    We couldn't find any products in this category. Try
-                    selecting a different category.
-                  </p>
-                  {selectedCategory !== "all" && (
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="mt-12 flex flex-col items-center">
+                  <div className="text-gray-600 mb-4 text-sm">
+                    Showing {(currentPage - 1) * itemsPerPage + 1} -{" "}
+                    {Math.min(currentPage * itemsPerPage, totalProducts)} of{" "}
+                    {totalProducts} products
+                  </div>
+
+                  <div className="flex items-center space-x-2">
                     <Button
-                      onClick={() => setSelectedCategory("all")}
-                      className="bg-green-600 hover:bg-green-700">
-                      Browse All Products
+                      variant="outline"
+                      size="icon"
+                      onClick={handlePrevPage}
+                      disabled={currentPage === 1}
+                      className="h-10 w-10 rounded-full"
+                      aria-label="Previous page">
+                      <ChevronLeft className="h-4 w-4" />
                     </Button>
-                  )}
+
+                    {getPageNumbers().map((pageNumber) => (
+                      <Button
+                        key={pageNumber}
+                        variant={
+                          currentPage === pageNumber ? "default" : "outline"
+                        }
+                        onClick={() => handlePageClick(pageNumber)}
+                        className={cn(
+                          "h-10 w-10 rounded-full",
+                          currentPage === pageNumber &&
+                            "bg-green-600 hover:bg-green-700"
+                        )}>
+                        {pageNumber}
+                      </Button>
+                    ))}
+
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={handleNextPage}
+                      disabled={currentPage === totalPages}
+                      className="h-10 w-10 rounded-full"
+                      aria-label="Next page">
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <div className="mt-4 flex items-center space-x-2">
+                    <span className="text-sm text-gray-600">Go to page:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max={totalPages}
+                      value={currentPage}
+                      onChange={(e) => {
+                        const page = parseInt(e.target.value);
+                        if (page >= 1 && page <= totalPages) {
+                          handlePageClick(page);
+                        }
+                      }}
+                      className="w-16 px-2 py-1 border rounded text-center"
+                    />
+                    <span className="text-sm text-gray-500">
+                      of {totalPages}
+                    </span>
+                  </div>
                 </motion.div>
               )}
+            </>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center py-12">
+              <div className="text-5xl mb-4">🥬</div>
+              <h3 className="text-xl font-semibold mb-2">No products found</h3>
+              <p className="text-gray-500 mb-4">
+                We couldn't find any products in this category. Try selecting a
+                different category.
+              </p>
+              {selectedCategory !== "all" && (
+                <Button
+                  onClick={() => setSelectedCategory("all")}
+                  className="bg-green-600 hover:bg-green-700">
+                  Browse All Products
+                </Button>
+              )}
             </motion.div>
-          </AnimatePresence>
+          )}
 
           {!isLoadingProducts && products.length > 0 && (
             <motion.div

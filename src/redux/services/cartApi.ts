@@ -16,7 +16,7 @@ export const cartApi = baseApi.injectEndpoints({
         method: "GET",
       }),
       providesTags: ["Cart"],
-      keepUnusedDataFor: 120,
+      keepUnusedDataFor: 30,
       transformResponse: (response: ApiResponse<CartData>) => {
         if (!response.data?.products) {
           response.data.products = [];

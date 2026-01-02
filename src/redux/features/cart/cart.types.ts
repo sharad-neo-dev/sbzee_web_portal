@@ -2,6 +2,7 @@ import { UIProductForCart } from "@/types/cart.types";
 
 export interface AddToCartPayload {
   id: string;
+  productId: string;
   name: string;
   price: number;
   quantity: number;

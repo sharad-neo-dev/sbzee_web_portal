@@ -25,12 +25,12 @@ export default function CategoriesSection() {
     isError: isCategoriesError,
   } = useGetCategoriesQuery();
 
-  // Fetch products by category - FIXED: Added skip condition
+  // Fetch products by category
   const {
     data: productsData,
     isLoading: isLoadingProducts,
     isError: isProductsError,
-    refetch: refetchProducts, // Added refetch function
+    refetch: refetchProducts,
   } = useGetProductsByCategoryQuery(
     {
       categoryId: selectedCategory,
@@ -38,39 +38,24 @@ export default function CategoriesSection() {
       limit: itemsPerPage,
     },
     {
-      skip: !selectedCategory, // Skip if no category selected
-      refetchOnMountOrArgChange: true, // Refetch when args change
+      skip: !selectedCategory,
+      refetchOnMountOrArgChange: true,
     }
   );
 
-  // Extract categories from API response
   const categories = categoriesData?.data || [];
 
-  // Extract products and pagination info
   const products =
     productsData?.data?.product || productsData?.data?.products || [];
   const totalProducts = productsData?.data?.meta?.total || 0;
   const totalPages = Math.ceil(totalProducts / itemsPerPage);
 
-  // Reset page when category changes
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedCategory]);
 
-  // Log for debugging
-  // useEffect(() => {
-  //   console.log("Selected Category:", selectedCategory);
-  //   console.log("Current Page:", currentPage);
-  //   console.log("Products Data:", productsData);
-  //   console.log("Products:", products);
-  //   console.log("Total Products:", totalProducts);
-  // }, [selectedCategory, currentPage, productsData, products, totalProducts]);
-
-  // Handle category selection
   const handleCategorySelect = (categoryId: string) => {
-    // console.log("Category selected:", categoryId);
     setSelectedCategory(categoryId);
-    // Page will be reset by useEffect
   };
 
   // Handle pagination
@@ -88,13 +73,11 @@ export default function CategoriesSection() {
     }
   };
 
-  // Handle page number click
   const handlePageClick = (pageNumber: number) => {
     setCurrentPage(pageNumber);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Generate page numbers for pagination
   const getPageNumbers = () => {
     const pages = [];
     const maxVisiblePages = 5;
@@ -142,7 +125,6 @@ export default function CategoriesSection() {
 
       <section className="py-12 bg-linear-to-b from-white to-green-50/30">
         <div className="container-custom px-4">
-          {/* Section Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -368,7 +350,6 @@ export default function CategoriesSection() {
                   )}
                 </>
               ) : (
-                /* Empty State */
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -393,7 +374,6 @@ export default function CategoriesSection() {
             </motion.div>
           </AnimatePresence>
 
-          {/* Stats  */}
           {!isLoadingProducts && products.length > 0 && (
             <motion.div
               initial={{ opacity: 0 }}

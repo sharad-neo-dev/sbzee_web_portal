@@ -26,7 +26,6 @@ export function CartProductImage({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  // Check if it's a pre-signed S3 URL
   const isPreSigned = src.includes("s3.amazonaws.com");
 
   const handleLoad = () => {
@@ -38,7 +37,6 @@ export function CartProductImage({
     setError(true);
   };
 
-  // For pre-signed URLs, we need to bypass Next.js optimization
   if (isPreSigned) {
     return (
       <div className={cn("relative overflow-hidden", className)}>
@@ -65,7 +63,6 @@ export function CartProductImage({
     );
   }
 
-  // For regular images, use Next.js Image
   if (fill) {
     return (
       <Image

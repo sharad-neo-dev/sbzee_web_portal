@@ -40,15 +40,13 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     error,
     refetch,
   } = useGetCartQuery(undefined, {
-    skip: !isOpen, // Only fetch when drawer is open
+    skip: !isOpen,
   });
 
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
-  // Sync with backend data when cart opens
   useEffect(() => {
     if (isOpen && cartResponse?.data) {
-      // Convert backend products to UI format
       const backendItems = cartResponse.data.products.map((product: any) => ({
         id: product.productId,
         name: product.name,
@@ -56,7 +54,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
         quantity: product.quantity,
         image: product.thumbnail,
         unit: product.unitTypeDescription,
-        category: "", // You might want to add category from your data
+        category: "",
         priceId: product.priceId,
         unitType: product.unitType,
         thumbnail: product.thumbnail,
@@ -64,8 +62,6 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
         originalPrice: product.originalPrice,
         unitPrice: product.unitPrice,
       }));
-
-      // Here you would sync with your hook if needed
     }
   }, [isOpen, cartResponse]);
 
@@ -123,7 +119,6 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const { subtotal, totalItems, deliveryFee, platformFee, total } =
     calculateTotals();
 
-  // Backdrop click handler
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       onClose();
@@ -132,7 +127,6 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
   return (
     <>
-      {/* Backdrop */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -146,7 +140,6 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
         )}
       </AnimatePresence>
 
-      {/* Drawer */}
       <motion.div
         initial={{ x: "100%" }}
         animate={{ x: isOpen ? 0 : "100%" }}
@@ -178,7 +171,6 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
           </Button>
         </div>
 
-        {/* Empty State */}
         {items.length === 0 && !isLoading && (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
             <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
@@ -196,14 +188,12 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
           </div>
         )}
 
-        {/* Loading State */}
         {isLoading && (
           <div className="flex-1 flex items-center justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
           </div>
         )}
 
-        {/* Error State */}
         {error && (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
             <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
@@ -221,7 +211,6 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
         {items.length > 0 && !isLoading && !error && (
           <>
             <div className="flex-1 overflow-y-auto p-4">
-              {/* Delivery Info */}
               {cartData?.deliveryMessage && (
                 <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
                   <div className="flex items-center gap-2">
@@ -241,7 +230,6 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="flex gap-4 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
-                    {/* Product Image */}
                     <div className="relative w-20 h-20 shrink-0 rounded-md overflow-hidden bg-gray-100">
                       <CartProductImage
                         src={item.image}
@@ -352,7 +340,6 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
             {/* Footer with Summary */}
             <div className="border-t p-4 bg-white">
-              {/* Security Badge */}
               <div className="flex items-center justify-center gap-2 mb-4 text-sm text-gray-600">
                 <Shield className="h-4 w-4" />
                 <span>Secure checkout • 100% Safe & Secure</span>
@@ -411,9 +398,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 <Button
                   className="w-full bg-green-600 hover:bg-green-700 h-12 text-lg"
                   onClick={() => {
-                    // Navigate to checkout
                     onClose();
-                    // You can add navigation logic here
                   }}>
                   Proceed to Checkout
                 </Button>

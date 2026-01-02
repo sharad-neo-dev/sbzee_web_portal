@@ -23,7 +23,6 @@ interface ProductCardProps {
   showHindiName?: boolean;
 }
 
-// Framer Motion variants with proper typing
 const cardVariants: Variants = {
   hidden: {
     opacity: 0,
@@ -79,7 +78,7 @@ export function ProductCard({
     priceOptions = [],
   } = product;
 
-  // Prepare price options - if none, create a default one
+  // Prepare price options
   const availablePrices =
     priceOptions.length > 0
       ? priceOptions
@@ -100,7 +99,7 @@ export function ProductCard({
   const currentOriginalPrice =
     selectedPrice?.originalPrice || originalPrice || price;
 
-  // Calculate discount for selected price
+  // Calculate discount
   const calculateDiscount = () => {
     if (currentOriginalPrice > currentPrice && currentOriginalPrice > 0) {
       return Math.round(
@@ -112,8 +111,6 @@ export function ProductCard({
 
   const actualDiscount = calculateDiscount();
 
-  // Find if this product with selected price is in cart
-  // IMPORTANT: Use both product ID and price ID to uniquely identify cart item
   const cartItem = items.find(
     (item) => item.id === id && item.priceId === selectedPrice?.id
   );
@@ -121,7 +118,6 @@ export function ProductCard({
   const cartQuantity = cartItem?.quantity || 0;
   const isInCart = cartQuantity > 0;
 
-  // Reset selected price index when price options change
   useEffect(() => {
     if (selectedPriceIndex >= availablePrices.length) {
       setSelectedPriceIndex(0);
@@ -131,7 +127,6 @@ export function ProductCard({
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
 
-    // Using the new cart hook with selected price
     await addToCart({
       id,
       name,
@@ -140,11 +135,10 @@ export function ProductCard({
       image,
       unit: currentUnit,
       category,
-      priceId: selectedPrice?.id, // Use selected price ID
+      priceId: selectedPrice?.id,
       unitType: selectedPrice?.unitType,
     });
 
-    // Call custom handler if provided
     if (onAddToCart) {
       onAddToCart(product);
     }
@@ -154,7 +148,6 @@ export function ProductCard({
     e.stopPropagation();
 
     if (!cartItem) {
-      // If not in cart, add it first
       await handleAddToCart(e);
       return;
     }
@@ -162,7 +155,7 @@ export function ProductCard({
     await updateCartItemQuantity({
       productId: id,
       quantity: cartQuantity + 1,
-      priceId: selectedPrice?.id, // Use selected price ID
+      priceId: selectedPrice?.id,
     });
 
     if (onAddToCart) {
@@ -176,16 +169,15 @@ export function ProductCard({
     if (!cartItem) return;
 
     if (cartQuantity === 1) {
-      // Remove from cart if quantity becomes 0
       await removeFromCart({
         productId: id,
-        priceId: selectedPrice?.id, // Use selected price ID
+        priceId: selectedPrice?.id,
       });
     } else {
       await updateCartItemQuantity({
         productId: id,
         quantity: cartQuantity - 1,
-        priceId: selectedPrice?.id, // Use selected price ID
+        priceId: selectedPrice?.id,
       });
     }
 
@@ -212,8 +204,7 @@ export function ProductCard({
     router.push(`/product/${id}`);
   };
 
-  // Fixed height for price options container to prevent layout shift
-  const priceOptionsHeight = "h-8"; // Fixed height for 1 row of price options
+  const priceOptionsHeight = "h-8";
 
   if (variant === "compact") {
     return (
@@ -381,7 +372,7 @@ export function ProductCard({
                 </p>
               )}
 
-              {/* Price Options for Horizontal Variant - Fixed Height */}
+              {/* Price Options for Horizontal Variant  */}
               <div className={cn("mt-2", priceOptionsHeight)}>
                 {availablePrices.length > 1 && (
                   <div className="flex flex-wrap gap-1">
@@ -513,7 +504,6 @@ export function ProductCard({
             </Button>
           )}
 
-          {/* Out of Stock Overlay */}
           {!inStock && (
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
               <Badge className="bg-gray-900 text-white px-3 py-1">
@@ -534,7 +524,6 @@ export function ProductCard({
               <p className="text-sm text-gray-500 mt-1">{hindiName}</p>
             )}
 
-            {/* Price Section */}
             <div className="mt-3">
               <div className="flex items-baseline">
                 <span className="text-xl font-bold text-gray-900">
@@ -559,7 +548,7 @@ export function ProductCard({
               )}
             </div>
 
-            {/* Price Options - Fixed Height Container */}
+            {/* Price Options */}
             <div className={cn("mt-2", priceOptionsHeight)}>
               {availablePrices.length > 1 && (
                 <div className="flex flex-wrap gap-1">
@@ -580,7 +569,7 @@ export function ProductCard({
               )}
             </div>
 
-            {/* Description (only for detailed variant) */}
+            {/* Description */}
             {variant === "detailed" && description && (
               <p className="text-sm text-gray-600 mt-3 line-clamp-2">
                 {description}
@@ -588,7 +577,7 @@ export function ProductCard({
             )}
           </div>
 
-          {/* Cart Controls - Full Width */}
+          {/* Cart Controls  */}
           <CardFooter className="p-0 mt-4">
             {isInCart ? (
               <div className="flex items-center justify-between w-full bg-green-600 rounded-md overflow-hidden">

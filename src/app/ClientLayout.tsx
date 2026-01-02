@@ -22,24 +22,19 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   );
   const { items } = useAppSelector((state) => state.cart);
 
-  // Check auth and redirect if needed
   useEffect(() => {
-    // Skip check for public pages that don't need auth
     const publicPaths = ["/login", "/verify-otp"];
     const isPublicPath = publicPaths.some(
       (path) => pathname === path || pathname.startsWith(`${path}/`)
     );
 
-    // If we're still loading auth state, wait
     if (authLoading) return;
 
     const checkAuth = () => {
       const authData = localStorage.getItem("auth");
       const isLoggedIn = !!authData || isAuthenticated;
 
-      // If NOT logged in AND trying to access protected page (not public)
       if (!isLoggedIn && !isPublicPath) {
-        // Store current path for redirect after login
         if (pathname !== "/" && !pathname.includes("/login")) {
           sessionStorage.setItem("redirectAfterLogin", pathname);
         }
@@ -47,7 +42,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // If IS logged in AND trying to access auth pages (login/verify-otp)
       if (isLoggedIn && isPublicPath) {
         const redirectPath =
           sessionStorage.getItem("redirectAfterLogin") || "/";
@@ -62,13 +56,11 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     checkAuth();
   }, [pathname, router, isAuthenticated, authLoading]);
 
-  // Hide layout for auth pages
   const hideLayoutRoutes = ["/login", "/verify-otp"];
   const shouldHideLayout = hideLayoutRoutes.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
 
-  // Show loading while checking auth
   if (isCheckingAuth || authLoading) {
     return <LoadingScreen />;
   }
@@ -86,7 +78,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         {!shouldHideLayout && <Footer />}
         {!shouldHideLayout && <BackToTop />}
 
-        {/* Cart Components */}
         {!shouldHideLayout && items.length > 0 && (
           <FloatingCart onViewCart={() => setCartDrawerOpen(true)} />
         )}

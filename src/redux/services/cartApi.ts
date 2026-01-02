@@ -16,10 +16,8 @@ export const cartApi = baseApi.injectEndpoints({
         method: "GET",
       }),
       providesTags: ["Cart"],
-      // Cache for 2 minutes
       keepUnusedDataFor: 120,
       transformResponse: (response: ApiResponse<CartData>) => {
-        // Ensure products array exists
         if (!response.data?.products) {
           response.data.products = [];
         }
@@ -41,23 +39,20 @@ export const cartApi = baseApi.injectEndpoints({
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          // Optimistically update the cart
           dispatch(
             cartApi.util.updateQueryData("getCart", undefined, (draft) => {
               if (draft.data) {
-                // We'll update the cart with the new response
-                // The actual update will come from the getCart query invalidation
                 return draft;
               }
             })
           );
         } catch (error) {
-          // Error will be handled by the mutation
+          console.error(error);
         }
       },
     }),
 
-    // Remove Quantity from Cart (Decrease quantity by 1)
+    // Remove Quantity from Cart
     removeQuantityFromCart: builder.mutation<
       ApiResponse<CartUpdateResponse>,
       RemoveFromCartRequest
@@ -70,7 +65,7 @@ export const cartApi = baseApi.injectEndpoints({
       invalidatesTags: ["Cart"],
     }),
 
-    // Remove Product from Cart (Remove completely)
+    // Remove Product from Cart
     removeFromCart: builder.mutation<
       ApiResponse<CartUpdateResponse>,
       RemoveFromCartRequest

@@ -16,7 +16,6 @@ import type {
 const normalizeProduct = (product: any): ApiProduct => {
   return {
     ...product,
-    // Ensure we have a prices array (use price if exists, otherwise prices)
     prices: product.price || product.prices || [],
   };
 };
@@ -34,7 +33,6 @@ export const productsApi = baseApi.injectEndpoints({
         params: { page, limit },
       }),
       providesTags: ["FeaturedProducts"],
-      // Cache for 5 minutes
       keepUnusedDataFor: 300,
     }),
 
@@ -45,7 +43,6 @@ export const productsApi = baseApi.injectEndpoints({
         method: "GET",
       }),
       providesTags: ["Categories"],
-      // Cache for 10 minutes
       keepUnusedDataFor: 600,
     }),
 

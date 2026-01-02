@@ -29,19 +29,17 @@ export const useCart = () => {
   const [removeFromCartApi] = useRemoveFromCartMutation();
   const [emptyCartApi] = useEmptyCartMutation();
 
-  // Add to cart - optimistic update
+  // Add to cart
   const addToCart = useCallback(
     async (payload: AddToCartPayload) => {
       try {
-        // Optimistic update
         dispatch(addToCartLocal(payload));
 
-        // Call API
         await addToCartApi({
           data: [
             {
               productId: payload.id,
-              price: payload.priceId || "", // Make sure priceId is provided
+              price: payload.priceId || "",
               quantity: payload.quantity,
             },
           ],
@@ -49,7 +47,6 @@ export const useCart = () => {
 
         return { success: true };
       } catch (error) {
-        // Revert optimistic update on error
         dispatch(removeFromCartLocal({ productId: payload.id }));
         console.error("Failed to add to cart:", error);
         return { success: false, error };
@@ -58,7 +55,7 @@ export const useCart = () => {
     [dispatch, addToCartApi]
   );
 
-  // Update quantity - optimistic update
+  // Update quantity
   const updateCartItemQuantity = useCallback(
     async (payload: UpdateCartItemQuantityPayload) => {
       try {
@@ -69,11 +66,9 @@ export const useCart = () => {
 
         if (difference === 0) return { success: true };
 
-        // Optimistic update
         dispatch(updateCartItemQuantityLocal(payload));
 
         if (difference > 0) {
-          // Increase quantity
           await addToCartApi({
             data: [
               {
@@ -84,7 +79,6 @@ export const useCart = () => {
             ],
           }).unwrap();
         } else {
-          // Decrease quantity
           for (let i = 0; i < Math.abs(difference); i++) {
             await removeQuantityApi({
               productId: payload.productId,
@@ -102,14 +96,12 @@ export const useCart = () => {
     [dispatch, addToCartApi, removeQuantityApi, items]
   );
 
-  // Remove from cart - optimistic update
+  // Remove from cart
   const removeFromCart = useCallback(
     async (payload: RemoveFromCartPayload) => {
       try {
-        // Optimistic update
         dispatch(removeFromCartLocal(payload));
 
-        // Call API
         await removeFromCartApi({
           productId: payload.productId,
           priceId: payload.priceId || "",
@@ -127,10 +119,8 @@ export const useCart = () => {
   // Clear cart
   const clearCart = useCallback(async () => {
     try {
-      // Optimistic update
       dispatch(clearCartLocal());
 
-      // Call API
       await emptyCartApi().unwrap();
 
       return { success: true };

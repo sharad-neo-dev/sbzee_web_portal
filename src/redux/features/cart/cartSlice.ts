@@ -19,7 +19,6 @@ const cartSlice = createSlice({
   name: "cart",
   initialState,
   reducers: {
-    // Local cart operations (optimistic updates)
     addToCart: (state, action: PayloadAction<AddToCartPayload>) => {
       const { id, quantity, ...productData } = action.payload;
       const existingItem = state.items.find((item) => item.id === id);
@@ -45,7 +44,6 @@ const cartSlice = createSlice({
 
       if (item) {
         if (quantity <= 0) {
-          // Remove item if quantity is 0 or negative
           state.items = state.items.filter((item) => item.id !== productId);
         } else {
           item.quantity = quantity;
@@ -82,9 +80,7 @@ const cartSlice = createSlice({
       state.error = action.payload;
     },
 
-    // Initialize cart from localStorage or session
     initializeCart: (state) => {
-      // You can add logic here to load cart from localStorage if needed
       state.lastUpdated = Date.now();
     },
   },

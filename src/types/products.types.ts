@@ -55,7 +55,7 @@ export interface ApiProduct {
     name: string;
     description?: string;
   };
-  // Handle both price and prices from different APIs
+  // Handle both price and prices
   price?: ProductPrice[];
   prices?: ProductPrice[];
   tags: string[];
@@ -70,19 +70,19 @@ export interface ApiProduct {
 
 // Product Types
 export interface Product extends ApiProduct {
-  prices: ProductPrice[]; // Make prices required in normalized Product
+  prices: ProductPrice[];
 }
 
 // Product List Response
 export interface ProductListResponse {
-  products?: ApiProduct[]; // Use ApiProduct
-  product?: ApiProduct[]; // Use ApiProduct
+  products?: ApiProduct[];
+  product?: ApiProduct[];
   meta: PaginationMeta;
 }
 
 // Featured Products Response
 export interface FeaturedProductsResponse {
-  products: ApiProduct[]; // Use ApiProduct
+  products: ApiProduct[];
   meta: PaginationMeta;
 }
 
@@ -116,7 +116,7 @@ export interface RelatedProductsResponse {
 
 // Favorites Response
 export interface FavoritesResponse {
-  products: ApiProduct[]; // Use ApiProduct instead of Product
+  products: ApiProduct[];
   meta: PaginationMeta;
 }
 

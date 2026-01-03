@@ -28,7 +28,7 @@ const authSlice = createSlice({
       state.userId = action.payload.user.id;
       state.error = null;
     },
-    sendOtpFailure: (state, action: PayloadAction<string>) => {
+    sendOtpFailure: (state, action: PayloadAction<any>) => {
       state.isLoading = false;
       state.error = action.payload;
       state.otpSentTo = undefined;

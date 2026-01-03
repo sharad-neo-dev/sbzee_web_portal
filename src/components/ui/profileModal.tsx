@@ -17,7 +17,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormModal } from "@/components/ui/FormModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useToast } from "@/hooks/useToast";
 import {
   useGetProfileQuery,
   useUpdateProfileMutation,
@@ -26,6 +25,7 @@ import {
 import { useAppDispatch } from "@/redux/hooks";
 import { updateUser, logout } from "@/redux/features/auth/authSlice";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -42,7 +42,6 @@ interface ProfileFormData {
 
 export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const dispatch = useAppDispatch();
-  const { toast } = useToast();
 
   const [formData, setFormData] = useState<ProfileFormData>({
     firstName: "",
@@ -151,22 +150,13 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           }
         }
 
-        toast({
-          title: "Profile updated",
-          description: "Your profile has been updated successfully.",
-          type: "success",
-        });
+        toast.success("Profile updated");
 
         initializeForm(response.data);
         setIsEditing(false);
       }
     } catch (error: any) {
-      toast({
-        title: "Update failed",
-        description:
-          error?.data?.message || "Failed to update profile. Please try again.",
-        type: "destructive",
-      });
+      toast.error("Update Failed!");
     }
   };
 
@@ -182,21 +172,12 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     try {
       await deleteProfile().unwrap();
 
-      toast({
-        title: "Account deleted",
-        description: "Your account has been deleted successfully.",
-        type: "success",
-      });
+      toast("Your account has been deleted successfully.");
 
       dispatch(logout());
       onClose();
     } catch (error: any) {
-      toast({
-        title: "Deletion failed",
-        description:
-          error?.data?.message || "Failed to delete account. Please try again.",
-        type: "destructive",
-      });
+      toast("Failed to delete account. Please try again.");
     }
   };
 

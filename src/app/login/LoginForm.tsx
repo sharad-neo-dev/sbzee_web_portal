@@ -6,9 +6,14 @@ import { motion } from "framer-motion";
 import { Leaf, Smartphone, Shield, Truck, ChevronLeft } from "lucide-react";
 import { useLoginMutation } from "@/redux/services/authApi";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { sendOtpStart, clearError } from "@/redux/features/auth/authSlice";
+import {
+  sendOtpStart,
+  clearError,
+  sendOtpFailure,
+} from "@/redux/features/auth/authSlice";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -74,6 +79,10 @@ export default function LoginForm() {
       }
     } catch (err: any) {
       console.error("Login error:", err);
+      dispatch(
+        sendOtpFailure(err?.data?.message || "Login failed. Please try again.")
+      );
+      toast.error(err?.data?.message || "Login failed. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

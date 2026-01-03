@@ -12,6 +12,7 @@ import { useToggleFavoriteMutation } from "@/redux/services/productsApi";
 import { ProductImage } from "./ProductImage";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/hooks/useCart";
+import { toast } from "sonner";
 
 interface ProductCardProps {
   product: UIProduct;
@@ -126,7 +127,7 @@ export function ProductCard({
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
 
-    await addToCart({
+    const res = await addToCart({
       id: cartItemId,
       productId: productId,
       name,
@@ -138,7 +139,7 @@ export function ProductCard({
       priceId: selectedPrice?.id,
       unitType: selectedPrice?.unitType,
     });
-
+    toast.success(res.data?.message || "product added successfully");
     if (onAddToCart) {
       onAddToCart(product);
     }
@@ -189,7 +190,8 @@ export function ProductCard({
   const handleToggleFavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await toggleFavorite({ productId: productId }).unwrap();
+      const res = await toggleFavorite({ productId: productId }).unwrap();
+      toast.success(res?.message || "Favourite toggled!");
     } catch (error) {
       console.error("Failed to toggle favorite:", error);
     }

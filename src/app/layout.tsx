@@ -6,6 +6,7 @@ import { Footer } from "@/components/layout/Footer";
 import { BackToTop } from "@/components/ui/BackToTop";
 import { Providers } from "./providers";
 import { ClientLayout } from "./ClientLayout";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "Sbzee",
@@ -51,7 +52,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <head>
-        <link rel="alternate" type="application/rss+xml" title="AssuredPay" />
+        <link rel="alternate" type="application/rss+xml" title="Sbzee" />
         {/* Google Analytics */}
         {/* <script
           async
@@ -172,6 +173,7 @@ export default function RootLayout({
         <Providers>
           <ClientLayout>{children}</ClientLayout>
         </Providers>
+        <Toaster richColors position="top-right" />
       </body>
     </html>
   );

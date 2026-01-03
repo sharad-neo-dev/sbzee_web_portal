@@ -26,6 +26,8 @@ import { useRouter } from "next/navigation";
 import { useLogoutMutation } from "@/redux/services/authApi";
 import { ProductImage } from "../ui/ProductImage";
 import { ProfileModal } from "../ui/profileModal";
+import { toast } from "sonner";
+import { ConfirmModal } from "../ui";
 
 interface HeaderProps {
   onCartClick?: () => void;
@@ -36,6 +38,7 @@ export function Header({ onCartClick }: HeaderProps) {
   const [accountOpen, setAccountOpen] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const [fade, setFade] = useState(false);
   const dispatch = useAppDispatch();
@@ -94,15 +97,11 @@ export function Header({ onCartClick }: HeaderProps) {
   }, []);
 
   const handleLogout = async () => {
-    try {
-      await logoutMutation().unwrap();
-    } catch (error) {
-      console.error("Logout failed:", error);
-    } finally {
-      dispatch(logout());
-      window.location.href = "/login";
-    }
+    dispatch(logout());
+    toast.success("Logout successfully!");
+    router.push("/login");
   };
+
   const handleCardClick = (id: string) => {
     router.push(`/product/${id}`);
     setSearchValue("");
@@ -113,6 +112,12 @@ export function Header({ onCartClick }: HeaderProps) {
   const handleProfileClick = () => {
     setProfileModalOpen(true);
     setAccountOpen(false);
+  };
+
+  const openLogoutConfirm = () => {
+    setShowLogoutConfirm(true);
+    setAccountOpen(false);
+    setMobileDrawerOpen(false);
   };
 
   return (
@@ -203,10 +208,7 @@ export function Header({ onCartClick }: HeaderProps) {
                 {isAuthenticated ? (
                   <div className="border-t pt-3 mt-3">
                     <button
-                      onClick={() => {
-                        handleLogout();
-                        setMobileDrawerOpen(false);
-                      }}
+                      onClick={openLogoutConfirm}
                       className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-red-50 text-red-600 w-full text-left">
                       <LogOut className="w-5 h-5" />
                       <span>Logout</span>
@@ -395,7 +397,7 @@ export function Header({ onCartClick }: HeaderProps) {
 
                       <li className="border-t mt-1">
                         <button
-                          onClick={handleLogout}
+                          onClick={openLogoutConfirm}
                           className="flex items-center gap-3 w-full px-4 py-2 text-left text-red-600 hover:bg-red-50">
                           <LogOut className="w-4 h-4" />
                           Logout
@@ -477,6 +479,16 @@ export function Header({ onCartClick }: HeaderProps) {
       <ProfileModal
         isOpen={profileModalOpen}
         onClose={() => setProfileModalOpen(false)}
+      />
+      <ConfirmModal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={handleLogout}
+        title="Confirm Logout"
+        message="Are you sure you want to logout?"
+        confirmText="Logout"
+        cancelText="Cancel"
+        variant="warning"
       />
     </>
   );

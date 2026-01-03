@@ -73,7 +73,7 @@ export default function FavoritesContent() {
           return (b.price?.[0]?.price || 0) - (a.price?.[0]?.price || 0);
         case "recent":
         default:
-          return 0; // API should return in recent order
+          return 0;
       }
     });
 
@@ -100,7 +100,6 @@ export default function FavoritesContent() {
 
   // Handle clear all
   const handleClearAll = async () => {
-    // You might want to implement a batch unfavorite API
     console.log("Clear all favorites");
   };
 

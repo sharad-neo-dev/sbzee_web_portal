@@ -541,7 +541,7 @@ function ProductDetailsContent({
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      onClick={handleDecreaseQuantity}
                       className="h-10 w-10 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-gray-400 transition-colors">
                       <span className="text-xl">-</span>
                     </motion.button>
@@ -555,7 +555,7 @@ function ProductDetailsContent({
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
-                      onClick={() => setQuantity(quantity + 1)}
+                      onClick={handleIncreaseQuantity}
                       className="h-10 w-10 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-gray-400 transition-colors">
                       <span className="text-xl">+</span>
                     </motion.button>

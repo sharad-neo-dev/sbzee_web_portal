@@ -4,7 +4,6 @@ import FeaturedProducts from "@/components/sections/FeaturedProducts";
 import CategoriesSection from "@/components/sections/CategoriesSection";
 import { HomePageLoader } from "@/components/ui/HomePageLoader";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { ToastContainer } from "@/components/ui/ToastContainer";
 
 export const metadata: Metadata = {
   title: "Fresh Fruits & Vegetables | Sbzee - Farm to Door Delivery",
@@ -77,7 +76,6 @@ export default function HomePage() {
           </div>
         </section>
       </main>
-      <ToastContainer />
     </ProtectedRoute>
   );
 }

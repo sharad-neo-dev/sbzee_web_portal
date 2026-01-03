@@ -20,6 +20,8 @@ import { useGetCartQuery } from "@/redux/services/cartApi";
 import { CartProductImage } from "./CartProductImage";
 import { cn } from "@/lib/utils";
 import { ProductImage } from "../ui/ProductImage";
+import { toast } from "sonner";
+import { ConfirmModal } from "../ui";
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -41,13 +43,13 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     error,
     refetch,
   } = useGetCartQuery(undefined, {
-    // Poll every 10 seconds when drawer is open
     pollingInterval: isOpen ? 10000 : 0,
     refetchOnFocus: true,
     refetchOnReconnect: true,
   });
 
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
+  const [showClearCartConfirm, setShowClearCartConfirm] = useState(false);
 
   useEffect(() => {
     if (isOpen && cartResponse?.data) {
@@ -113,11 +115,16 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   };
 
   const handleClearCart = async () => {
-    if (window.confirm("Are you sure you want to clear your cart?")) {
-      setIsProcessing("clear");
-      await clearCart();
-      setIsProcessing(null);
-    }
+    setIsProcessing("clear");
+    const res = await clearCart();
+    toast.success(
+      res.success ? "Cart cleared successfully" : "Something went wrong"
+    );
+    setIsProcessing(null);
+    setShowClearCartConfirm(false);
+  };
+  const openClearCartConfirm = () => {
+    setShowClearCartConfirm(true);
   };
 
   const { subtotal, totalItems, deliveryFee, platformFee, total } =
@@ -325,7 +332,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               <div className="mt-6">
                 <Button
                   variant="outline"
-                  onClick={handleClearCart}
+                  onClick={openClearCartConfirm}
                   disabled={isProcessing === "clear"}
                   className="w-full text-red-600 border-red-200 hover:bg-red-50">
                   {isProcessing === "clear" ? (
@@ -425,6 +432,16 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
           </>
         )}
       </motion.div>
+      <ConfirmModal
+        isOpen={showClearCartConfirm}
+        onClose={() => setShowClearCartConfirm(false)}
+        onConfirm={handleClearCart}
+        title="Clear Cart"
+        message="Are you sure you want to clear all items from your cart?"
+        confirmText="Clear Cart"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </>
   );
 }

@@ -7,7 +7,7 @@ import {
   NotificationsResponse,
 } from "@/types/notifications.types";
 
-export const productsApi = baseApi.injectEndpoints({
+export const notificationsApi = baseApi.injectEndpoints({
   overrideExisting: true,
   endpoints: (builder) => ({
     // Get All Notifications
@@ -76,4 +76,4 @@ export const {
   useGetUnopenedCountQuery,
   useMarkAllReadQuery,
   useMarkNotificationOpenedMutation,
-} = productsApi;
+} = notificationsApi;

@@ -115,6 +115,7 @@ export const baseApi = createApi({
     "Categories",
     "Favorites",
     "Notifications",
+    "DeliveryAddress",
   ],
   endpoints: () => ({}),
 });

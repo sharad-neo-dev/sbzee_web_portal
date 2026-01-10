@@ -84,7 +84,6 @@ function ProductDetailsContent({
   } = useGetProductByIdQuery(productId, {
     skip: !productId,
   });
-  console.log(productResponse, "prr");
   const { data: relatedResponse, isLoading: relatedLoading } =
     useGetRelatedProductsQuery(productId, {
       skip: !productId,

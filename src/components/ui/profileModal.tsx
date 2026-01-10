@@ -27,6 +27,8 @@ import { updateUser, logout } from "@/redux/features/auth/authSlice";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { ProductImage } from "./ProductImage";
+import { useGetAllDeliveryAddressQuery } from "@/redux/services/deliveryAddressApi";
+import AddDeliveryAddressSection from "./AddDeliveryAddressSection";
 
 interface ProfileAvatarProps {
   previewUrl?: string;
@@ -93,6 +95,12 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       skip: !isOpen,
     }
   );
+
+  const { data: deliveryAddressData, isLoading: isLoadingAddresses } =
+    useGetAllDeliveryAddressQuery(undefined, {
+      skip: !isOpen,
+    });
+  const deliveryAddresses = deliveryAddressData?.data ?? [];
   const [updateProfile, { isLoading: isUpdating }] = useUpdateProfileMutation();
   const [deleteProfile, { isLoading: isDeleting }] = useDeleteProfileMutation();
 
@@ -442,6 +450,57 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                     )}
                   </Button>
                 </>
+              )}
+            </div>
+
+            {/* Delivery Addresses */}
+            <div className="pt-6 border-t">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Delivery Addresses
+              </h3>
+
+              {isLoadingAddresses ? (
+                <div className="flex justify-center py-6">
+                  <Loader2 className="h-6 w-6 animate-spin text-green-600" />
+                </div>
+              ) : deliveryAddresses.length > 0 ? (
+                <div className="space-y-4">
+                  {deliveryAddresses.map((address) => (
+                    <div
+                      key={address.id}
+                      className="border rounded-lg p-4 bg-gray-50">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-semibold text-gray-900">
+                            {address.name}
+                            {address.isDefault && (
+                              <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">
+                                Default
+                              </span>
+                            )}
+                          </p>
+
+                          <p className="text-sm text-gray-600 capitalize">
+                            {address.addressType}
+                          </p>
+
+                          {address.society && (
+                            <p className="text-sm text-gray-700 mt-1">
+                              {address.flat?.number}, {address.tower?.name},{" "}
+                              {address.society.addressLine1}
+                            </p>
+                          )}
+
+                          <p className="text-sm text-gray-700 mt-1">
+                            {address.contactPerson} · {address.phoneNumber}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <AddDeliveryAddressSection />
               )}
             </div>
 

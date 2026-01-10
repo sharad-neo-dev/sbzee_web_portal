@@ -66,7 +66,7 @@ export const productsApi = baseApi.injectEndpoints({
     }),
 
     // Get Single Product Details
-    getProductById: builder.query<ApiResponse<SingleProductResponse>, string>({
+    getProductById: builder.query<SingleProductResponse, string>({
       query: (productId) => ({
         url: `/user/product/${productId}`,
         method: "GET",

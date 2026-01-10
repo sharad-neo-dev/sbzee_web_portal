@@ -89,7 +89,11 @@ export interface FeaturedProductsResponse {
 // Single Product Response
 export interface SingleProductResponse {
   data: {
-    category: Category;
+    category: {
+      id: string;
+      name: string;
+      description?: string;
+    };
     isInCartForAnyPrice: boolean;
     id: string;
     uniqueId: string;

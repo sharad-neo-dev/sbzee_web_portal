@@ -1,4 +1,3 @@
-// CHANGE THE ENTIRE page.tsx to this:
 import type { Metadata } from "next";
 import ProductDetailsClient from "./ProductDetailsClient";
 
@@ -25,8 +24,5 @@ export async function generateMetadata({
 export default async function ProductPage({ params }: ProductPageProps) {
   const { id } = await params;
 
-  // Just pass the ID, let client component fetch data
   return <ProductDetailsClient productId={id} />;
 }
-
-// Important: Remove the notFound() calls and server-side fetch

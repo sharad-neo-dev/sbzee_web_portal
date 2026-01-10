@@ -86,7 +86,6 @@ const authSlice = createSlice({
     updateUser: (state, action: PayloadAction<User>) => {
       state.user = action.payload;
 
-      // Also update localStorage
       if (typeof window !== "undefined") {
         const authData = localStorage.getItem("auth");
         if (authData) {

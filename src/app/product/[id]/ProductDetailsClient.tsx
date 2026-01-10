@@ -76,7 +76,6 @@ function ProductDetailsContent({
   const { items, addToCart, updateCartItemQuantity, removeFromCart } =
     useCart();
 
-  // Fetch product details
   const {
     data: productResponse,
     isLoading,
@@ -85,8 +84,7 @@ function ProductDetailsContent({
   } = useGetProductByIdQuery(productId, {
     skip: !productId,
   });
-
-  // Fetch related products
+  console.log(productResponse, "prr");
   const { data: relatedResponse, isLoading: relatedLoading } =
     useGetRelatedProductsQuery(productId, {
       skip: !productId,
@@ -95,7 +93,7 @@ function ProductDetailsContent({
   const [toggleFavorite, { isLoading: isTogglingFavorite }] =
     useToggleFavoriteMutation();
 
-  const product = productResponse?.data?.data;
+  const product = productResponse?.data;
   const relatedProducts = (relatedResponse?.data as unknown as Product[]) || [];
   // Calculate discount for selected price
   const selectedPrice = product?.price?.[selectedPriceIndex];
@@ -150,7 +148,6 @@ function ProductDetailsContent({
   }
   const cartItemId = `${product.id}-${selectedPrice?.id}`;
 
-  // Find the cart item
   const cartItem = items.find((item: any) => item.id === cartItemId);
   const cartQuantity = cartItem?.quantity || 0;
   const isInCart = cartQuantity > 0;

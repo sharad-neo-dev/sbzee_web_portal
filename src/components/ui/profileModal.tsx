@@ -26,6 +26,39 @@ import { useAppDispatch } from "@/redux/hooks";
 import { updateUser, logout } from "@/redux/features/auth/authSlice";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { ProductImage } from "./ProductImage";
+
+interface ProfileAvatarProps {
+  previewUrl?: string;
+  imageUrl?: string;
+  alt: string;
+}
+
+const ProfileAvatar = ({ previewUrl, imageUrl, alt }: ProfileAvatarProps) => {
+  if (previewUrl?.startsWith("data:") || previewUrl?.startsWith("blob:")) {
+    return (
+      <img src={previewUrl} alt={alt} className="h-full w-full object-cover" />
+    );
+  }
+
+  if (imageUrl) {
+    return (
+      <ProductImage
+        src={imageUrl}
+        alt={alt}
+        fill
+        isPreSigned
+        className="object-cover"
+      />
+    );
+  }
+
+  return (
+    <AvatarFallback className="h-full w-full bg-green-100 flex items-center justify-center">
+      <User className="h-12 w-12 text-green-800" />
+    </AvatarFallback>
+  );
+};
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -60,14 +93,12 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       skip: !isOpen,
     }
   );
-
   const [updateProfile, { isLoading: isUpdating }] = useUpdateProfileMutation();
   const [deleteProfile, { isLoading: isDeleting }] = useDeleteProfileMutation();
 
   const initializeForm = useCallback(
     (userData: any) => {
       if (userData && !isInitialized) {
-        console.log("Initializing form with user data");
         setFormData({
           firstName: userData.firstName || "",
           lastName: userData.lastName || "",
@@ -213,23 +244,11 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             <div className="flex flex-col items-center space-y-4">
               <div className="relative">
                 <div className="relative h-32 w-32 rounded-full border-4 border-white shadow-lg overflow-hidden">
-                  {previewUrl ? (
-                    <AvatarImage
-                      src={previewUrl}
-                      alt="Profile"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : formData.currentPhoto ? (
-                    <AvatarImage
-                      src={formData.currentPhoto}
-                      alt="Profile"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <AvatarFallback className="h-full w-full bg-green-100 flex items-center justify-center">
-                      <User className="h-12 w-12 text-green-800" />
-                    </AvatarFallback>
-                  )}
+                  <ProfileAvatar
+                    previewUrl={previewUrl}
+                    imageUrl={formData.currentPhoto}
+                    alt="Profile"
+                  />
                 </div>
 
                 {isEditing && (

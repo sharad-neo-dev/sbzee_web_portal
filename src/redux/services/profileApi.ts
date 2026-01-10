@@ -1,9 +1,10 @@
+import { ProfileResponse, UpdateProfileResponse } from "@/types/profile.types";
 import { baseApi } from "./baseApi";
 
 export const profileApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     // Get user profile
-    getProfile: builder.query<any, void>({
+    getProfile: builder.query<ProfileResponse, void>({
       query: () => ({
         url: "/user/profile",
         method: "GET",
@@ -12,7 +13,7 @@ export const profileApi = baseApi.injectEndpoints({
     }),
 
     // Update user profile
-    updateProfile: builder.mutation<any, FormData>({
+    updateProfile: builder.mutation<UpdateProfileResponse, FormData>({
       query: (formData) => ({
         url: "/user/profile",
         method: "PATCH",
